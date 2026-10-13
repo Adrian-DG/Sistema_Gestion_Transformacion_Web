@@ -1,10 +1,22 @@
 import { Routes } from '@angular/router';
 import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
+import { Permiso } from './core/auth/permisos';
 import { MENU } from './layout/navegacion';
+
+/** Módulos ya implementados; el resto muestra la página "en desarrollo". */
+const modulos: Routes = [
+  {
+    path: 'usuarios',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionUsuarios] },
+    loadChildren: () =>
+      import('./features/usuarios/usuarios.routes').then((m) => m.USUARIOS_ROUTES),
+  },
+];
 
 /** Módulos de las fases siguientes: por ahora muestran "en desarrollo", con sus permisos ya aplicados. */
 const modulosPendientes: Routes = MENU.flatMap((g) => g.elementos)
-  .filter((e) => e.ruta !== '/inicio')
+  .filter((e) => e.ruta !== '/inicio' && !modulos.some((m) => `/${m.path}` === e.ruta))
   .map((e) => ({
     path: e.ruta.slice(1),
     title: e.titulo,
@@ -31,6 +43,7 @@ export const routes: Routes = [
         title: 'Inicio',
         loadComponent: () => import('./features/inicio/inicio').then((m) => m.Inicio),
       },
+      ...modulos,
       ...modulosPendientes,
       {
         path: 'acceso-denegado',

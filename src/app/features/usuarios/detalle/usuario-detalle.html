@@ -1,0 +1,110 @@
+<a
+  routerLink="/usuarios"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Usuarios
+</a>
+
+@if (cargando() && !usuario()) {
+  <div class="flex justify-center py-16"><app-cargando texto="Cargando usuario…" /></div>
+} @else if (usuario(); as u) {
+  <app-encabezado-pagina
+    seccion="Usuario"
+    [titulo]="u.nombre + ' ' + u.apellido"
+    [descripcion]="u.userName"
+  >
+    <a [routerLink]="['editar']" class="btn btn-contorno">
+      <app-icono nombre="editar" [tamano]="18" /> Editar datos
+    </a>
+    @if (!esUsuarioActual()) {
+      <button
+        type="button"
+        class="btn"
+        [class]="u.activo ? 'btn-peligro' : 'btn-primario'"
+        [disabled]="cambiandoEstado()"
+        (click)="cambiarEstado()"
+      >
+        {{ u.activo ? 'Desactivar' : 'Activar' }}
+      </button>
+    }
+  </app-encabezado-pagina>
+
+  @if (!u.activo) {
+    <div
+      class="mb-6 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+      role="status"
+    >
+      <app-icono nombre="advertencia" [tamano]="18" class="mt-0.5" />
+      Este usuario está desactivado y no puede iniciar sesión.
+    </div>
+  }
+
+  <div class="grid gap-6 lg:grid-cols-5">
+    <!-- Datos -->
+    <section class="tarjeta lg:col-span-2" aria-labelledby="titulo-datos">
+      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+        <h2 id="titulo-datos" class="font-semibold text-slate-900">Datos del usuario</h2>
+        <app-estado-badge [estado]="u.activo ? 'Activo' : 'Inactivo'" />
+      </header>
+      <dl class="divide-y divide-slate-100 text-sm">
+        @for (fila of datos(); track fila.etiqueta) {
+          <div class="grid grid-cols-3 gap-2 px-5 py-2.5">
+            <dt class="text-slate-500">{{ fila.etiqueta }}</dt>
+            <dd class="col-span-2 break-words text-slate-900">{{ fila.valor }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <!-- Permisos -->
+    <section class="tarjeta lg:col-span-3" aria-labelledby="titulo-permisos">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="titulo-permisos" class="font-semibold text-slate-900">Permisos</h2>
+        <p class="text-xs text-slate-500">
+          Definen los módulos a los que tiene acceso. Los cambios se aplican en su próximo inicio de
+          sesión.
+        </p>
+      </header>
+      <div class="p-5">
+        <app-selector-permisos
+          [disponibles]="disponibles()"
+          [(seleccion)]="permisos"
+          [bloqueados]="bloqueados()"
+          motivoBloqueo="No puede quitarse a sí mismo el permiso de Administrador."
+          [deshabilitado]="guardandoPermisos()"
+        />
+        <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            class="btn btn-contorno"
+            [disabled]="!permisosModificados() || guardandoPermisos()"
+            (click)="descartarPermisos()"
+          >
+            Descartar cambios
+          </button>
+          <button
+            type="button"
+            class="btn btn-primario"
+            [disabled]="!permisosModificados() || guardandoPermisos()"
+            (click)="guardarPermisos()"
+          >
+            @if (guardandoPermisos()) {
+              <app-cargando class="text-current" />
+            }
+            Guardar permisos
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+} @else {
+  <div class="tarjeta">
+    <app-estado-vacio
+      icono="buscar"
+      [titulo]="error()?.status === 404 ? 'Usuario no encontrado' : 'No se pudo cargar el usuario'"
+      [mensaje]="error()?.mensaje"
+    >
+      <a routerLink="/usuarios" class="btn btn-primario">Volver al listado</a>
+    </app-estado-vacio>
+  </div>
+}

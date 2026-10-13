@@ -1,0 +1,127 @@
+<app-encabezado-pagina
+  seccion="Administración"
+  titulo="Usuarios"
+  descripcion="Cuentas de acceso, permisos y estado."
+>
+  <a routerLink="nuevo" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nuevo usuario
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row">
+    <label class="relative flex-1">
+      <span class="sr-only">Buscar usuarios</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por nombre, usuario, identificación o correo"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+    <label class="sm:w-48">
+      <span class="sr-only">Estado</span>
+      <select class="control" (change)="filtrarEstado($any($event.target).value)">
+        <option value="" [selected]="estado() === ''">Todos los estados</option>
+        <option value="activos" [selected]="estado() === 'activos'">Activos</option>
+        <option value="inactivos" [selected]="estado() === 'inactivos'">Inactivos</option>
+      </select>
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="
+      q() || estado() ? 'Ningún usuario coincide con los filtros' : 'No hay usuarios registrados'
+    "
+  >
+    <ng-template appCelda="usuario" let-u>
+      <a [routerLink]="u.id" class="group block">
+        <span
+          class="block font-medium text-slate-900 group-hover:text-primario group-hover:underline"
+        >
+          {{ u.nombreCompleto }}
+        </span>
+        <span class="block text-xs text-slate-500">
+          {{ u.userName }}
+          @if (u.id === idActual()) {
+            <span class="ml-1 rounded bg-secundario/20 px-1.5 py-0.5 font-medium text-slate-700"
+              >Usted</span
+            >
+          }
+        </span>
+      </a>
+    </ng-template>
+
+    <ng-template appCelda="identificacion" let-u>
+      <span class="font-mono text-xs">{{ u.identificacion }}</span>
+    </ng-template>
+
+    <ng-template appCelda="institucion" let-u>
+      <span class="block" [title]="nombreInstitucion(u.institucion)">{{ u.institucion }}</span>
+      @if (u.rango) {
+        <span class="block text-xs text-slate-500">{{ u.rango }}</span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="permisos" let-u>
+      <div class="flex max-w-xs flex-wrap gap-1">
+        @for (rol of u.roles; track rol) {
+          <span
+            class="rounded px-1.5 py-0.5 text-xs font-medium"
+            [class]="
+              rol === 'Administrador'
+                ? 'bg-primario text-primario-contraste'
+                : 'bg-slate-100 text-slate-700'
+            "
+            >{{ nombrePermiso(rol) }}</span
+          >
+        } @empty {
+          <span class="text-xs text-slate-400">Sin permisos</span>
+        }
+      </div>
+    </ng-template>
+
+    <ng-template appCelda="estado" let-u>
+      <app-estado-badge [estado]="u.activo ? 'Activo' : 'Inactivo'" />
+    </ng-template>
+
+    <ng-template appCelda="acciones" let-u>
+      <div class="flex justify-end gap-1">
+        <a
+          [routerLink]="[u.id, 'editar']"
+          class="btn btn-texto btn-sm"
+          [attr.aria-label]="'Editar ' + u.nombreCompleto"
+        >
+          Editar
+        </a>
+        @if (u.id !== idActual()) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class]="u.activo ? 'btn-texto !text-red-700' : 'btn-texto !text-emerald-700'"
+            [disabled]="procesando() === u.id"
+            (click)="cambiarEstado(u)"
+          >
+            {{ u.activo ? 'Desactivar' : 'Activar' }}
+          </button>
+        }
+      </div>
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

@@ -1,0 +1,213 @@
+<a
+  [routerLink]="esEdicion() ? ['/usuarios', id()] : '/usuarios'"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" />
+  {{ esEdicion() ? 'Volver al usuario' : 'Usuarios' }}
+</a>
+
+<app-encabezado-pagina
+  seccion="Usuarios"
+  [titulo]="esEdicion() ? 'Editar usuario' : 'Nuevo usuario'"
+  [descripcion]="esEdicion() ? nombreActual() : 'Registre la cuenta y asigne sus permisos.'"
+/>
+
+@if (cargando()) {
+  <div class="flex justify-center py-16"><app-cargando texto="Cargando usuario…" /></div>
+} @else {
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+    @if (errorGeneral(); as mensaje) {
+      <div
+        class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        role="alert"
+      >
+        <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+        <span>{{ mensaje }}</span>
+      </div>
+    }
+
+    <section class="tarjeta" aria-labelledby="sec-personales">
+      <h2
+        id="sec-personales"
+        class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+      >
+        Datos personales
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <app-campo
+          etiqueta="Identificación (cédula)"
+          para="identificacion"
+          [control]="formulario.controls.identificacion"
+          requerido
+        >
+          <input
+            id="identificacion"
+            class="control"
+            formControlName="identificacion"
+            inputmode="numeric"
+            placeholder="000-0000000-0"
+          />
+        </app-campo>
+        <app-campo etiqueta="Nombre" para="nombre" [control]="formulario.controls.nombre" requerido>
+          <input id="nombre" class="control" formControlName="nombre" autocomplete="given-name" />
+        </app-campo>
+        <app-campo
+          etiqueta="Apellido"
+          para="apellido"
+          [control]="formulario.controls.apellido"
+          requerido
+        >
+          <input
+            id="apellido"
+            class="control"
+            formControlName="apellido"
+            autocomplete="family-name"
+          />
+        </app-campo>
+        <app-campo etiqueta="Sexo" para="sexo" [control]="formulario.controls.sexo" requerido>
+          <select id="sexo" class="control" formControlName="sexo">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (s of sexos; track s.valor) {
+              <option [ngValue]="s.valor">{{ s.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Institución"
+          para="institucion"
+          [control]="formulario.controls.institucion"
+          requerido
+        >
+          <select id="institucion" class="control" formControlName="institucion">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (i of instituciones; track i.valor) {
+              <option [ngValue]="i.valor">{{ i.codigo }} · {{ i.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Rango"
+          para="rangoId"
+          [control]="formulario.controls.rangoId"
+          ayuda="Déjelo vacío para personal civil."
+        >
+          <select id="rangoId" class="control" formControlName="rangoId">
+            <option [ngValue]="null">Sin rango (civil)</option>
+            @for (r of opcionesRango(); track r.id) {
+              <option [ngValue]="r.id">{{ r.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-cuenta">
+      <h2 id="sec-cuenta" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        Cuenta de acceso
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <app-campo
+          etiqueta="Nombre de usuario"
+          para="userName"
+          [control]="formulario.controls.userName"
+          ayuda="Letras, números y . _ - @"
+          requerido
+        >
+          <input
+            id="userName"
+            class="control"
+            formControlName="userName"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+          />
+        </app-campo>
+        <app-campo
+          etiqueta="Correo electrónico"
+          para="email"
+          [control]="formulario.controls.email"
+          requerido
+        >
+          <input
+            id="email"
+            type="email"
+            class="control"
+            formControlName="email"
+            autocomplete="off"
+          />
+        </app-campo>
+        <app-campo etiqueta="Teléfono" para="telefono" [control]="formulario.controls.telefono">
+          <input
+            id="telefono"
+            type="tel"
+            class="control"
+            formControlName="telefono"
+            placeholder="809-000-0000"
+          />
+        </app-campo>
+
+        @if (!esEdicion()) {
+          <app-campo
+            etiqueta="Contraseña"
+            para="password"
+            [control]="formulario.controls.password"
+            ayuda="Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo."
+            requerido
+          >
+            <input
+              id="password"
+              type="password"
+              class="control"
+              formControlName="password"
+              autocomplete="new-password"
+            />
+          </app-campo>
+          <app-campo
+            etiqueta="Confirmar contraseña"
+            para="confirmacion"
+            [control]="formulario.controls.confirmacion"
+            requerido
+          >
+            <input
+              id="confirmacion"
+              type="password"
+              class="control"
+              formControlName="confirmacion"
+              autocomplete="new-password"
+            />
+          </app-campo>
+        }
+      </div>
+    </section>
+
+    @if (!esEdicion()) {
+      <section class="tarjeta" aria-labelledby="sec-permisos">
+        <header class="border-b border-slate-200 px-5 py-3">
+          <h2 id="sec-permisos" class="font-semibold text-slate-900">Permisos</h2>
+          <p class="text-xs text-slate-500">
+            Puede asignarlos ahora o más tarde desde el detalle del usuario.
+          </p>
+        </header>
+        <div class="p-5">
+          <app-selector-permisos
+            [disponibles]="disponibles()"
+            [(seleccion)]="permisos"
+            [deshabilitado]="guardando()"
+          />
+        </div>
+      </section>
+    }
+
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a [routerLink]="esEdicion() ? ['/usuarios', id()] : '/usuarios'" class="btn btn-contorno"
+        >Cancelar</a
+      >
+      <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+        @if (guardando()) {
+          <app-cargando class="text-current" />
+        }
+        {{ esEdicion() ? 'Guardar cambios' : 'Crear usuario' }}
+      </button>
+    </div>
+  </form>
+}
