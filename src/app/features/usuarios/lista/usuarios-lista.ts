@@ -60,7 +60,7 @@ export class UsuariosLista {
     { clave: 'institucion', titulo: 'Institución / rango', ocultarEnMovil: true },
     { clave: 'permisos', titulo: 'Permisos', ocultarEnMovil: true },
     { clave: 'estado', titulo: 'Estado' },
-    { clave: 'acciones', titulo: '', alineacion: 'derecha' },
+    { clave: 'acciones', titulo: '', alineacion: 'derecha', ocultarEnMovil: true },
   ];
 
   protected readonly filas = signal<UsuarioResumen[]>([]);
