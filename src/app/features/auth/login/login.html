@@ -1,0 +1,106 @@
+<!-- Panel institucional -->
+<section
+  class="relative flex flex-col justify-between overflow-hidden bg-primario px-6 py-8 text-primario-contraste lg:w-1/2 lg:px-12 lg:py-12"
+>
+  <div
+    class="absolute inset-y-0 right-0 hidden w-2 bg-secundario lg:block"
+    aria-hidden="true"
+  ></div>
+  <div class="absolute inset-x-0 bottom-0 h-1.5 bg-secundario lg:hidden" aria-hidden="true"></div>
+
+  <div class="flex items-center gap-4 lg:flex-col lg:items-start lg:gap-8">
+    <app-marca [tamano]="72" class="lg:hidden" />
+    <app-marca [tamano]="112" class="hidden lg:inline-flex" />
+    <div>
+      <h1 class="text-xl leading-tight font-bold sm:text-2xl lg:text-4xl">
+        {{ apariencia.apariencia().nombreSistema }}
+      </h1>
+      @if (apariencia.apariencia().nombreInstitucion) {
+        <p class="mt-1 text-sm opacity-85 lg:mt-3 lg:text-lg">
+          {{ apariencia.apariencia().nombreInstitucion }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <p class="mt-8 hidden max-w-md text-sm opacity-75 lg:block">
+    Control de asignaciones de vehículos, combustible, inventario y documentación de la flota
+    institucional.
+  </p>
+</section>
+
+<!-- Formulario -->
+<main class="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+  <div class="w-full max-w-sm">
+    <h2 class="text-2xl font-bold text-slate-900">Iniciar sesión</h2>
+    <p class="mt-1 text-sm text-slate-600">Ingrese sus credenciales institucionales.</p>
+
+    @if (error(); as mensaje) {
+      <div
+        class="mt-6 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        role="alert"
+      >
+        <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+        <span>{{ mensaje }}</span>
+      </div>
+    }
+
+    <form class="mt-6 space-y-5" [formGroup]="formulario" (ngSubmit)="ingresar()" novalidate>
+      <app-campo
+        etiqueta="Usuario"
+        para="usuario"
+        [control]="formulario.controls.usuario"
+        requerido
+      >
+        <input
+          id="usuario"
+          class="control"
+          formControlName="usuario"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+      </app-campo>
+
+      <app-campo
+        etiqueta="Contraseña"
+        para="password"
+        [control]="formulario.controls.password"
+        requerido
+      >
+        <div class="relative">
+          <input
+            id="password"
+            class="control pr-10"
+            formControlName="password"
+            autocomplete="current-password"
+            [type]="verPassword() ? 'text' : 'password'"
+          />
+          <button
+            type="button"
+            class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-700"
+            (click)="verPassword.set(!verPassword())"
+            [attr.aria-label]="verPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            [attr.aria-pressed]="verPassword()"
+          >
+            <app-icono [nombre]="verPassword() ? 'ocultar' : 'ver'" [tamano]="18" />
+          </button>
+        </div>
+      </app-campo>
+
+      <button type="submit" class="btn btn-primario w-full py-2.5" [disabled]="enviando()">
+        @if (enviando()) {
+          <app-cargando class="text-current" /> Verificando…
+        } @else {
+          <app-icono nombre="candado" [tamano]="18" /> Ingresar
+        }
+      </button>
+    </form>
+
+    <p class="mt-8 border-t border-slate-200 pt-4 text-xs text-slate-500">
+      Sistema de uso exclusivo para personal autorizado. Las actividades realizadas quedan
+      registradas.
+    </p>
+    <p class="mt-2 text-xs text-slate-400">© {{ anio }}</p>
+  </div>
+</main>

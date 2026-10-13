@@ -1,0 +1,151 @@
+<a
+  href="#contenido"
+  class="sr-only z-50 rounded bg-white px-3 py-2 text-sm font-semibold text-primario focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+  >Saltar al contenido</a
+>
+
+<!-- Encabezado institucional -->
+<header
+  class="sticky top-0 z-30 border-b-4 border-secundario bg-primario text-primario-contraste shadow"
+>
+  <div class="flex h-16 items-center gap-3 px-4 lg:px-6">
+    <button
+      type="button"
+      class="-ml-1 rounded-md p-2 hover:bg-white/10 lg:hidden"
+      (click)="menuLateralAbierto.set(!menuLateralAbierto())"
+      [attr.aria-expanded]="menuLateralAbierto()"
+      aria-controls="menu-lateral"
+      aria-label="Abrir menú"
+    >
+      <app-icono nombre="menu" />
+    </button>
+
+    <a routerLink="/inicio" class="flex min-w-0 items-center gap-3">
+      <app-marca [tamano]="40" />
+      <span class="min-w-0">
+        <span class="block truncate text-base leading-tight font-bold sm:hidden">
+          {{ apariencia.nombreCorto() }}
+        </span>
+        <span class="hidden truncate text-base leading-tight font-bold sm:block">
+          {{ apariencia.apariencia().nombreSistema }}
+        </span>
+        @if (apariencia.apariencia().nombreInstitucion) {
+          <span class="hidden truncate text-xs opacity-80 md:block">
+            {{ apariencia.apariencia().nombreInstitucion }}
+          </span>
+        }
+      </span>
+    </a>
+
+    <div class="relative ml-auto" data-menu-usuario>
+      <button
+        type="button"
+        class="flex items-center gap-2 rounded-md py-1 pr-2 pl-1 hover:bg-white/10"
+        (click)="menuUsuarioAbierto.set(!menuUsuarioAbierto())"
+        [attr.aria-expanded]="menuUsuarioAbierto()"
+        aria-haspopup="menu"
+      >
+        <span
+          class="flex size-8 items-center justify-center rounded-full bg-secundario text-xs font-bold text-secundario-contraste"
+          >{{ iniciales() }}</span
+        >
+        <span class="hidden text-left sm:block">
+          <span class="block text-sm leading-tight font-semibold">{{
+            auth.usuario()?.usuario
+          }}</span>
+          <span class="block text-xs leading-tight opacity-80">{{
+            auth.usuario()?.institucion
+          }}</span>
+        </span>
+        <app-icono nombre="abajo" [tamano]="16" />
+      </button>
+
+      @if (menuUsuarioAbierto()) {
+        <div
+          class="absolute right-0 mt-2 w-64 overflow-hidden rounded-md bg-white text-slate-700 shadow-lg ring-1 ring-slate-200"
+          role="menu"
+        >
+          <div class="border-b border-slate-100 px-4 py-3">
+            <p class="text-sm font-semibold text-slate-900">{{ auth.usuario()?.usuario }}</p>
+            <p class="text-xs text-slate-500">{{ auth.usuario()?.institucion }}</p>
+            <p class="mt-2 text-xs text-slate-500">
+              Permisos: {{ auth.permisos().length ? auth.permisos().join(', ') : 'ninguno' }}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            class="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+            (click)="cerrarSesion()"
+          >
+            <app-icono nombre="salir" [tamano]="18" /> Cerrar sesión
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>
+
+<div class="flex flex-1">
+  <!-- Fondo del menú en móvil -->
+  @if (menuLateralAbierto()) {
+    <div
+      class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+      (click)="menuLateralAbierto.set(false)"
+    ></div>
+  }
+
+  <!-- Menú lateral -->
+  <nav
+    id="menu-lateral"
+    class="fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-slate-200 bg-white pb-6 transition-transform lg:sticky lg:top-17 lg:z-0 lg:h-[calc(100dvh-4.25rem)] lg:w-64"
+    [class]="menuLateralAbierto() ? 'shadow-xl' : 'max-lg:invisible max-lg:-translate-x-full'"
+    aria-label="Menú principal"
+  >
+    <div class="flex h-16 items-center justify-between border-b border-slate-200 px-4 lg:hidden">
+      <span class="text-sm font-bold text-primario">{{ apariencia.nombreCorto() }}</span>
+      <button
+        type="button"
+        class="rounded-md p-2 text-slate-500 hover:bg-slate-100"
+        (click)="menuLateralAbierto.set(false)"
+        aria-label="Cerrar menú"
+      >
+        <app-icono nombre="cerrar" />
+      </button>
+    </div>
+
+    @for (grupo of menu(); track grupo.titulo) {
+      <div class="mt-5 px-3">
+        <p class="px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+          {{ grupo.titulo }}
+        </p>
+        <ul class="mt-1 space-y-0.5">
+          @for (item of grupo.elementos; track item.ruta) {
+            <li>
+              <a
+                [routerLink]="item.ruta"
+                routerLinkActive="bg-primario/10 !text-primario font-semibold border-primario"
+                class="flex items-center gap-3 rounded-r-md border-l-4 border-transparent px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                <app-icono [nombre]="item.icono" [tamano]="18" />
+                {{ item.titulo }}
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </nav>
+
+  <!-- Contenido -->
+  <div class="flex min-w-0 flex-1 flex-col">
+    <main id="contenido" class="flex-1 px-4 py-6 lg:px-8">
+      <router-outlet />
+    </main>
+    <footer class="border-t border-slate-200 px-4 py-4 text-xs text-slate-500 lg:px-8">
+      © {{ anio }}
+      {{ apariencia.apariencia().nombreInstitucion || apariencia.apariencia().nombreSistema }} · Uso
+      oficial exclusivo
+    </footer>
+  </div>
+</div>

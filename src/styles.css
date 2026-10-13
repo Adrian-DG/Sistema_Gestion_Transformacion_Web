@@ -1,3 +1,113 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+/*
+ * Colores institucionales. Los valores de :root son los predeterminados del backend y se usan
+ * hasta que AparienciaService aplica los guardados (IndexedDB) o los recibidos de la API.
+ * Los "-contraste" son el color de texto legible sobre cada fondo; los calcula el servicio.
+ */
+:root {
+  --sgt-primario: #002d62;
+  --sgt-primario-contraste: #ffffff;
+  --sgt-secundario: #c9a227;
+  --sgt-secundario-contraste: #0f172a;
+  --sgt-btn-primario: #002d62;
+  --sgt-btn-primario-texto: #ffffff;
+  --sgt-btn-secundario: #5b6b7f;
+  --sgt-btn-secundario-texto: #ffffff;
+  --sgt-btn-peligro: #ce1126;
+  --sgt-btn-peligro-texto: #ffffff;
+}
+
+@theme inline {
+  --color-primario: var(--sgt-primario);
+  --color-primario-contraste: var(--sgt-primario-contraste);
+  --color-secundario: var(--sgt-secundario);
+  --color-secundario-contraste: var(--sgt-secundario-contraste);
+  --color-peligro: var(--sgt-btn-peligro);
+}
+
+@theme {
+  /* Fuentes del sistema: la red institucional puede no tener salida a internet. */
+  --font-sans: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-slate-100 font-sans text-slate-800 antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sgt-primario);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold
+      transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-primario {
+    background-color: var(--sgt-btn-primario);
+    color: var(--sgt-btn-primario-texto);
+  }
+
+  .btn-primario:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--sgt-btn-primario) 85%, black);
+  }
+
+  .btn-secundario {
+    background-color: var(--sgt-btn-secundario);
+    color: var(--sgt-btn-secundario-texto);
+  }
+
+  .btn-secundario:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--sgt-btn-secundario) 85%, black);
+  }
+
+  .btn-peligro {
+    background-color: var(--sgt-btn-peligro);
+    color: var(--sgt-btn-peligro-texto);
+  }
+
+  .btn-peligro:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--sgt-btn-peligro) 85%, black);
+  }
+
+  .btn-contorno {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-texto {
+    @apply bg-transparent text-slate-600 hover:bg-slate-100;
+  }
+
+  .tarjeta {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
+
+  .control {
+    @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900
+      placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  .control:focus {
+    @apply outline-none;
+    border-color: var(--sgt-primario);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--sgt-primario) 20%, transparent);
+  }
+
+  .control.ng-invalid.ng-touched {
+    @apply border-red-500;
+  }
+}

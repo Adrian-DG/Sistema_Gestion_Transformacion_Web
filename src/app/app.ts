@@ -1,12 +1,16 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { Confirmacion } from './shared/ui/confirmacion/confirmacion';
+import { Toasts } from './shared/ui/toasts/toasts';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.css',
-  templateUrl: './app.html',
+  imports: [RouterOutlet, Toasts, Confirmacion],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <router-outlet />
+    <app-toasts />
+    <app-confirmacion />
+  `,
 })
-export class App {
-  protected readonly title = signal('sistema_gestion_transportacion_web');
-}
+export class App {}
