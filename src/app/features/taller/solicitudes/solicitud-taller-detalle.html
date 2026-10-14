@@ -263,6 +263,11 @@
           class="space-y-4 border-t border-slate-200 bg-slate-50/60 p-5"
         >
           <h3 class="text-sm font-semibold text-slate-800">Agregar pieza</h3>
+          <app-lector-codigo-barras
+            idControl="escanerPieza"
+            etiqueta="Escanee la pieza (cada lectura suma 1) o elíjala en la lista"
+            (leido)="escanear($event)"
+          />
           @if (errorPieza(); as mensaje) {
             <div
               class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
@@ -310,7 +315,9 @@
               <p class="mb-3 text-xs text-slate-500">
                 Registre la pieza; quedará sin existencia y se comprará en esta orden.
               </p>
-              <div class="grid gap-4 sm:grid-cols-[10rem_1fr_9rem_auto] sm:items-end">
+              <div
+                class="grid gap-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[9rem_11rem_1fr_8rem_auto]"
+              >
                 <app-campo
                   etiqueta="Código"
                   para="npCodigo"
@@ -321,6 +328,19 @@
                     id="npCodigo"
                     class="control font-mono uppercase"
                     formControlName="codigo"
+                  />
+                </app-campo>
+                <app-campo
+                  etiqueta="Código de barras"
+                  para="npCodigoBarras"
+                  [control]="nuevaPieza.controls.codigoBarras"
+                >
+                  <input
+                    id="npCodigoBarras"
+                    class="control font-mono"
+                    formControlName="codigoBarras"
+                    autocomplete="off"
+                    (keydown.enter)="$event.preventDefault()"
                   />
                 </app-campo>
                 <app-campo

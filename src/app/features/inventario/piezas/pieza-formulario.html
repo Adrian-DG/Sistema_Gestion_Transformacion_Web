@@ -41,12 +41,21 @@
         />
       </app-campo>
       <app-campo
-        etiqueta="Nombre"
-        para="nombre"
-        [control]="formulario.controls.nombre"
-        requerido
-        class="lg:col-span-2"
+        etiqueta="Código de barras"
+        para="codigoBarras"
+        [control]="formulario.controls.codigoBarras"
+        ayuda="Opcional. Escanéelo con el lector o escríbalo; no puede repetirse en otra pieza."
       >
+        <input
+          id="codigoBarras"
+          class="control font-mono"
+          formControlName="codigoBarras"
+          autocomplete="off"
+          spellcheck="false"
+          (keydown.enter)="$event.preventDefault()"
+        />
+      </app-campo>
+      <app-campo etiqueta="Nombre" para="nombre" [control]="formulario.controls.nombre" requerido>
         <input id="nombre" class="control" formControlName="nombre" />
       </app-campo>
       <app-campo

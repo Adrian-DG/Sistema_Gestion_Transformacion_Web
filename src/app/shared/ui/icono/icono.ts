@@ -47,6 +47,9 @@ const ICONOS = {
   proveedor: 'M3 9l1.5-5h15L21 9M3 9h18v11H3zM9 20v-6h6v6',
   mecanico:
     'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21l-3-3M17 16a2 2 0 1 0 4 0 2 2 0 0 0-4 0',
+  codigoBarras: 'M3 5v14M6 5v14M10 5v14M13 5v14M17 5v14M21 5v14',
+  camara:
+    'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   descargar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
 } as const;
 

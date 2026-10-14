@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -25,7 +33,8 @@ export const UNIDADES_MEDIDA = [
 
 /**
  * Alta (sin `id`) y edición (con `id`) de piezas. Una pieza nueva no tiene existencia: entra al
- * inventario con una entrada o con una compra directa en una orden de taller.
+ * inventario con una entrada o con una compra directa en una orden de taller. El código de barras es
+ * opcional y único; `?codigoBarras=` lo precarga (al escanear una pieza que no está registrada).
  */
 @Component({
   selector: 'app-pieza-formulario',
@@ -40,11 +49,14 @@ export class PiezaFormulario {
   private readonly fb = inject(NonNullableFormBuilder);
 
   readonly id = input<string>();
+  /** Código escaneado que no correspondía a ninguna pieza. */
+  readonly codigoBarras = input<string>();
   protected readonly esEdicion = computed(() => !!this.id());
   protected readonly unidades = UNIDADES_MEDIDA;
 
   protected readonly formulario = this.fb.group({
     codigo: ['', [Validators.required, Validators.maxLength(30)]],
+    codigoBarras: ['', [Validators.maxLength(64), Validators.pattern(/^\s*[\x21-\x7E]*\s*$/)]],
     nombre: ['', [Validators.required, Validators.maxLength(200)]],
     descripcion: ['', Validators.maxLength(500)],
     unidadMedida: ['Unidad', [Validators.required, Validators.maxLength(30)]],
@@ -57,6 +69,11 @@ export class PiezaFormulario {
   protected readonly errorGeneral = signal<string | null>(null);
 
   constructor() {
+    effect(() => {
+      const codigo = this.codigoBarras();
+      if (codigo && !this.id()) this.formulario.controls.codigoBarras.setValue(codigo);
+    });
+
     toObservable(this.id)
       .pipe(
         filter((id): id is string => !!id),
@@ -69,7 +86,11 @@ export class PiezaFormulario {
           return;
         }
         this.existencia.set(pieza.existencia);
-        this.formulario.patchValue({ ...pieza, descripcion: pieza.descripcion ?? '' });
+        this.formulario.patchValue({
+          ...pieza,
+          descripcion: pieza.descripcion ?? '',
+          codigoBarras: pieza.codigoBarras ?? '',
+        });
       });
   }
 
@@ -84,6 +105,7 @@ export class PiezaFormulario {
     const v = this.formulario.getRawValue();
     const datos: DatosPieza = {
       codigo: v.codigo.trim().toUpperCase(),
+      codigoBarras: v.codigoBarras.trim() || null,
       nombre: v.nombre.trim(),
       descripcion: v.descripcion.trim() || null,
       unidadMedida: v.unidadMedida.trim(),

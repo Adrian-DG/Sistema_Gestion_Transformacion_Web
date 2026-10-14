@@ -12,6 +12,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, of, switchMap, tap } from 'rxjs';
+import { LectorCodigoBarras } from '../../../shared/formularios/lector-codigo-barras';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
@@ -24,7 +25,17 @@ const ESPERA_BUSQUEDA_MS = 350;
 /** Piezas con su existencia. Los filtros viven en la URL (?q=&bajoMinimo=&pagina=&tamano=). */
 @Component({
   selector: 'app-piezas-lista',
-  imports: [DecimalPipe, RouterLink, EncabezadoPagina, Tabla, Celda, Paginador, EstadoBadge, Icono],
+  imports: [
+    DecimalPipe,
+    RouterLink,
+    EncabezadoPagina,
+    Tabla,
+    Celda,
+    Paginador,
+    EstadoBadge,
+    Icono,
+    LectorCodigoBarras,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './piezas-lista.html',
 })
@@ -73,6 +84,12 @@ export class PiezasLista {
         this.total.set(resultado?.totalRecords ?? 0);
         this.cargando.set(false);
       });
+  }
+
+  /** El código escaneado filtra de inmediato (también busca por código de barras). */
+  protected escanear(codigo: string): void {
+    clearTimeout(this.temporizadorBusqueda);
+    this.navegar({ q: codigo, pagina: null });
   }
 
   protected buscar(texto: string): void {

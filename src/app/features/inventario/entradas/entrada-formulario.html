@@ -75,6 +75,27 @@
         <app-icono nombre="mas" [tamano]="16" /> Agregar pieza
       </button>
     </header>
+    <div class="border-b border-slate-200 bg-slate-50/60 px-5 py-3">
+      <app-lector-codigo-barras
+        idControl="escaner"
+        etiqueta="Escanee una pieza para agregarla (cada lectura suma 1)"
+        (leido)="escanear($event)"
+      />
+      @if (codigoDesconocido(); as codigo) {
+        <p class="mt-2 text-sm text-amber-800" role="alert">
+          Ninguna pieza activa tiene el código <span class="font-mono">{{ codigo }}</span
+          >.
+          <a
+            routerLink="/inventario-piezas/nueva"
+            [queryParams]="{ codigoBarras: codigo }"
+            target="_blank"
+            class="font-medium underline"
+            >Registrar la pieza</a
+          >
+          y vuelva a escanearla.
+        </p>
+      }
+    </div>
     <div class="divide-y divide-slate-100" formArrayName="lineas">
       @for (linea of lineas.controls; track linea; let i = $index) {
         <div

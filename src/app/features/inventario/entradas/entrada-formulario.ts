@@ -13,12 +13,16 @@ import { catchError, firstValueFrom, of, startWith } from 'rxjs';
 import { CatalogosService } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
+import {
+  LectorCodigoBarras,
+  buscarPorCodigo,
+} from '../../../shared/formularios/lector-codigo-barras';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
 import { ArchivoSeleccionado, SelectorArchivo } from '../../../shared/formularios/selector-archivo';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { InventarioService, NuevaEntrada, moneda } from '../inventario.service';
+import { InventarioService, NuevaEntrada, PiezaCatalogo, moneda } from '../inventario.service';
 
 type Linea = FormGroup<{
   piezaId: FormControl<string | null>;
@@ -33,7 +37,10 @@ function hoy(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-/** Compra de piezas al inventario: proveedor, factura y una línea por pieza con su costo. */
+/**
+ * Compra de piezas al inventario: proveedor, factura y una línea por pieza con su costo. Al escanear
+ * un código de barras se agrega la pieza (o se suma 1 si ya está en la entrada).
+ */
 @Component({
   selector: 'app-entrada-formulario',
   imports: [
@@ -44,6 +51,7 @@ function hoy(): string {
     Cargando,
     Icono,
     SelectorArchivo,
+    LectorCodigoBarras,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrada-formulario.html',
@@ -71,10 +79,7 @@ export class EntradaFormulario {
     this.inventario.catalogoProveedores().pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
-  protected readonly piezas = toSignal(
-    this.inventario.catalogoPiezas().pipe(catchError(() => of([]))),
-    { initialValue: [] },
-  );
+  protected readonly piezas = signal<PiezaCatalogo[]>([]);
   private readonly tiposDocumento = toSignal(
     this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
     { initialValue: [] },
@@ -82,6 +87,8 @@ export class EntradaFormulario {
 
   protected readonly guardando = signal(false);
   protected readonly errorGeneral = signal<string | null>(null);
+  /** Código escaneado que no corresponde a ninguna pieza activa. */
+  protected readonly codigoDesconocido = signal<string | null>(null);
 
   private readonly valores = toSignal(this.formulario.valueChanges.pipe(startWith(null)));
   protected readonly totalEntrada = computed(() => {
@@ -93,6 +100,13 @@ export class EntradaFormulario {
 
   constructor() {
     this.agregarLinea();
+    void this.cargarPiezas();
+  }
+
+  private async cargarPiezas(): Promise<void> {
+    this.piezas.set(
+      await firstValueFrom(this.inventario.catalogoPiezas().pipe(catchError(() => of([])))),
+    );
   }
 
   protected get lineas(): FormArray<Linea> {
@@ -101,6 +115,37 @@ export class EntradaFormulario {
 
   protected unidad(piezaId: string | null): string {
     return this.piezas().find((p) => p.id === piezaId)?.unidadMedida ?? '';
+  }
+
+  protected async escanear(leido: string): Promise<void> {
+    let pieza = buscarPorCodigo(this.piezas(), leido);
+    if (!pieza) {
+      // Puede haberse registrado después de abrir el formulario (ej. desde el aviso de abajo).
+      await this.cargarPiezas();
+      pieza = buscarPorCodigo(this.piezas(), leido);
+    }
+    if (!pieza) {
+      this.codigoDesconocido.set(leido);
+      return;
+    }
+    this.codigoDesconocido.set(null);
+
+    const existente = this.lineas.controls.find((l) => l.controls.piezaId.value === pieza.id);
+    if (existente) {
+      const cantidad = existente.controls.cantidad;
+      cantidad.setValue((cantidad.value ?? 0) + 1);
+      this.notificaciones.info(`${pieza.nombre}: ${cantidad.value} ${pieza.unidadMedida}.`);
+      return;
+    }
+
+    // Se usa la línea vacía, si la hay; si no, una nueva.
+    let linea = this.lineas.controls.find((l) => !l.controls.piezaId.value);
+    if (!linea) {
+      this.agregarLinea();
+      linea = this.lineas.at(this.lineas.length - 1);
+    }
+    linea.patchValue({ piezaId: pieza.id, cantidad: 1 });
+    this.notificaciones.info(`${pieza.nombre} agregada; indique su costo.`);
   }
 
   protected agregarLinea(): void {

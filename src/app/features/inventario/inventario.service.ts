@@ -7,6 +7,8 @@ import { ElementoCatalogo } from '../../core/catalogos/catalogos.service';
 export interface Pieza {
   id: string;
   codigo: string;
+  /** Opcional; identifica la pieza al escanearla. */
+  codigoBarras: string | null;
   nombre: string;
   descripcion: string | null;
   unidadMedida: string;
@@ -19,6 +21,7 @@ export interface Pieza {
 export interface PiezaCatalogo {
   id: string;
   codigo: string;
+  codigoBarras: string | null;
   nombre: string;
   unidadMedida: string;
   existencia: number;
@@ -26,6 +29,7 @@ export interface PiezaCatalogo {
 
 export interface DatosPieza {
   codigo: string;
+  codigoBarras: string | null;
   nombre: string;
   descripcion: string | null;
   unidadMedida: string;

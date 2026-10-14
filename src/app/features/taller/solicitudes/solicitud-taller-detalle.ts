@@ -18,6 +18,10 @@ import { DialogosService } from '../../../core/dialogos/dialogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
+import {
+  LectorCodigoBarras,
+  buscarPorCodigo,
+} from '../../../shared/formularios/lector-codigo-barras';
 import { ArchivoSeleccionado, SelectorArchivo } from '../../../shared/formularios/selector-archivo';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
@@ -57,6 +61,7 @@ import {
     EstadoBadge,
     Icono,
     SelectorArchivo,
+    LectorCodigoBarras,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './solicitud-taller-detalle.html',
@@ -116,6 +121,7 @@ export class SolicitudTallerDetalle {
   protected readonly creandoPieza = signal(false);
   protected readonly nuevaPieza = this.fb.group({
     codigo: ['', [Validators.required, Validators.maxLength(30)]],
+    codigoBarras: ['', [Validators.maxLength(64), Validators.pattern(/^\s*[\x21-\x7E]*\s*$/)]],
     nombre: ['', [Validators.required, Validators.maxLength(200)]],
     unidadMedida: ['Unidad', [Validators.required, Validators.maxLength(30)]],
   });
@@ -292,6 +298,40 @@ export class SolicitudTallerDetalle {
     }
   }
 
+  /**
+   * Salida por escaneo: elige la pieza (cada lectura de la misma pieza suma 1 a la cantidad). Si el
+   * código no está registrado, abre el alta de pieza con el código cargado.
+   */
+  protected async escanear(leido: string): Promise<void> {
+    let encontrada = buscarPorCodigo(this.piezas(), leido);
+    if (!encontrada) {
+      this.piezas.set(
+        await firstValueFrom(this.inventario.catalogoPiezas().pipe(catchError(() => of([])))),
+      );
+      encontrada = buscarPorCodigo(this.piezas(), leido);
+    }
+
+    if (!encontrada) {
+      this.creandoPieza.set(true);
+      this.nuevaPieza.patchValue({ codigoBarras: leido });
+      this.notificaciones.advertencia(
+        `Ninguna pieza tiene el código ${leido}. Regístrela; se comprará en esta orden.`,
+      );
+      return;
+    }
+
+    const c = this.pieza.controls;
+    if (c.piezaId.value === encontrada.id) {
+      c.cantidad.setValue((c.cantidad.value ?? 0) + 1);
+    } else {
+      c.piezaId.setValue(encontrada.id);
+      c.cantidad.setValue(1);
+    }
+    this.notificaciones.info(
+      `${encontrada.nombre}: ${c.cantidad.value} ${encontrada.unidadMedida}.`,
+    );
+  }
+
   protected async registrarPiezaNueva(): Promise<void> {
     if (this.nuevaPieza.invalid) {
       this.nuevaPieza.markAllAsTouched();
@@ -303,6 +343,7 @@ export class SolicitudTallerDetalle {
       const id = await firstValueFrom(
         this.inventario.crearPieza({
           codigo: v.codigo.trim().toUpperCase(),
+          codigoBarras: v.codigoBarras.trim() || null,
           nombre: v.nombre.trim(),
           descripcion: null,
           unidadMedida: v.unidadMedida.trim(),
@@ -311,7 +352,7 @@ export class SolicitudTallerDetalle {
       );
       this.piezas.set(await firstValueFrom(this.inventario.catalogoPiezas()));
       this.pieza.controls.piezaId.setValue(id);
-      this.nuevaPieza.reset({ codigo: '', nombre: '', unidadMedida: 'Unidad' });
+      this.nuevaPieza.reset({ codigo: '', codigoBarras: '', nombre: '', unidadMedida: 'Unidad' });
       this.creandoPieza.set(false);
       this.notificaciones.exito(
         `Pieza ${v.nombre} registrada; indique la cantidad y los datos de la compra.`,

@@ -24,11 +24,16 @@
       <input
         type="search"
         class="control pl-10"
-        placeholder="Buscar por código, nombre o descripción"
+        placeholder="Buscar por código, código de barras, nombre o descripción"
         [value]="q()"
         (input)="buscar($any($event.target).value)"
       />
     </label>
+    <app-lector-codigo-barras
+      class="sm:w-80"
+      etiqueta="Escanear código de barras"
+      (leido)="escanear($event)"
+    />
     <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
       <input
         type="checkbox"
@@ -50,7 +55,9 @@
   >
     <ng-template appCelda="pieza" let-p>
       <span class="block text-slate-900">{{ p.nombre }}</span>
-      <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+      <span class="block font-mono text-xs text-slate-500">
+        {{ p.codigo }}{{ p.codigoBarras ? ' · ' + p.codigoBarras : '' }}
+      </span>
     </ng-template>
 
     <ng-template appCelda="existencia" let-p>
