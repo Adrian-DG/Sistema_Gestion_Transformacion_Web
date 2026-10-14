@@ -13,6 +13,13 @@ const modulos: Routes = [
       import('./features/usuarios/usuarios.routes').then((m) => m.USUARIOS_ROUTES),
   },
   {
+    path: 'asignaciones',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionAsignaciones] },
+    loadChildren: () =>
+      import('./features/asignaciones/asignaciones.routes').then((m) => m.ASIGNACIONES_ROUTES),
+  },
+  {
     path: 'apariencia',
     canActivate: [permisoGuard],
     data: { permisos: [Permiso.Administrador] },

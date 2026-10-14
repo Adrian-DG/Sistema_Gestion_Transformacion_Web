@@ -1,0 +1,156 @@
+<app-encabezado-pagina
+  seccion="Operaciones"
+  titulo="Asignaciones"
+  descripcion="Solicitudes de vehículos: aprobación, salida y retorno. Ninguna se elimina; se rechazan o cancelan con un motivo."
+>
+  <a routerLink="nueva" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nueva asignación
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row">
+    <label class="relative flex-1">
+      <span class="sr-only">Buscar asignaciones</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por placa, nombre, cédula, dependencia, destino o propósito"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+    <label class="sm:w-52">
+      <span class="sr-only">Estado</span>
+      <select class="control" (change)="filtrarEstatus($any($event.target).value)">
+        <option value="" [selected]="estatus() === null">Todos los estados</option>
+        @for (e of estados; track e) {
+          <option [value]="e" [selected]="estatus() === e">{{ e }}s</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="
+      q() || estatus()
+        ? 'Ninguna asignación coincide con los filtros'
+        : 'No hay asignaciones registradas'
+    "
+  >
+    <ng-template appCelda="vehiculo" let-a>
+      <span class="block font-mono font-semibold text-slate-900">{{ a.placa }}</span>
+      <span class="block text-xs text-slate-500">{{ a.marca }} {{ a.modelo }}</span>
+    </ng-template>
+
+    <ng-template appCelda="asignado" let-a>
+      <span class="block text-slate-900">{{ a.asignadoA }}</span>
+      <span class="block font-mono text-xs text-slate-500">{{ a.asignadoACedula }}</span>
+      @if (a.cargo) {
+        <span class="block text-xs text-slate-500">Al cargo: {{ a.cargo }}</span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="solicitante" let-a>
+      <span class="block text-slate-900">
+        @if (a.rangoSolicitante) {
+          <span class="text-slate-500">{{ a.rangoSolicitante }}</span>
+        }
+        {{ a.solicitante }}
+      </span>
+      <span class="block text-xs text-slate-500">{{ a.cargoSolicitante }} · {{ a.dependenciaSolicitante }}</span>
+    </ng-template>
+
+    <ng-template appCelda="chofer" let-a>
+      <span class="block text-slate-900">
+        @if (a.rangoChofer) {
+          <span class="text-slate-500">{{ a.rangoChofer }}</span>
+        }
+        {{ a.chofer }}
+      </span>
+      <span class="block font-mono text-xs text-slate-500">{{ a.choferCedula }}</span>
+    </ng-template>
+
+    <ng-template appCelda="periodo" let-a>
+      <span class="block whitespace-nowrap">{{ a.fechaSalida | date: 'dd/MM/y h:mm a' }}</span>
+      <span class="block text-xs whitespace-nowrap text-slate-500">
+        Retorno: {{ a.fechaRetornoEstimada | date: 'dd/MM/y h:mm a' }}
+      </span>
+      @if (a.fechaRetornoReal) {
+        <span class="block text-xs whitespace-nowrap text-slate-500">
+          Regresó: {{ a.fechaRetornoReal | date: 'dd/MM/y h:mm a' }}
+        </span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="estatus" let-a>
+      <app-estado-badge [estado]="a.estatus" />
+      @if (retornoVencido(a)) {
+        <span class="mt-0.5 block text-xs font-medium text-red-700">Retorno vencido</span>
+      }
+      @if (a.motivoRechazoCancelacion) {
+        <span class="mt-0.5 block max-w-48 text-xs text-slate-500" [title]="a.motivoRechazoCancelacion">
+          {{ a.motivoRechazoCancelacion }}
+        </span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="acciones" let-a>
+      <div class="flex flex-wrap justify-end gap-1">
+        @if (a.estatus === 'Pendiente') {
+          <button
+            type="button"
+            class="btn btn-texto btn-sm !text-emerald-700"
+            [disabled]="procesando() === a.id"
+            (click)="aprobar(a)"
+          >
+            Aprobar
+          </button>
+          <button
+            type="button"
+            class="btn btn-texto btn-sm !text-red-700"
+            [disabled]="procesando() === a.id"
+            (click)="rechazar(a)"
+          >
+            Rechazar
+          </button>
+        }
+        @if (a.estatus === 'Aprobada') {
+          <button
+            type="button"
+            class="btn btn-texto btn-sm"
+            [disabled]="procesando() === a.id"
+            (click)="registrarRetorno(a)"
+          >
+            Registrar retorno
+          </button>
+        }
+        @if (a.estatus === 'Pendiente' || a.estatus === 'Aprobada') {
+          <button
+            type="button"
+            class="btn btn-texto btn-sm"
+            [disabled]="procesando() === a.id"
+            (click)="cancelar(a)"
+          >
+            Cancelar
+          </button>
+        }
+      </div>
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

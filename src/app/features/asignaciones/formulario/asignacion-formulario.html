@@ -1,0 +1,317 @@
+<a
+  routerLink="/asignaciones"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Asignaciones
+</a>
+
+<app-encabezado-pagina
+  seccion="Asignaciones"
+  titulo="Nueva asignación"
+  descripcion="Registre la solicitud del vehículo. Queda pendiente hasta su aprobación."
+/>
+
+<!-- Datos de un miembro elegido en SIPFFAA: cédula, rango, cargo y departamento. -->
+<ng-template #fichaMiembro let-m>
+  @if (m) {
+    <dl
+      class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:grid-cols-4"
+    >
+      <div>
+        <dt class="text-slate-500">Cédula</dt>
+        <dd class="font-mono text-slate-900">{{ m.cedula }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Rango</dt>
+        <dd class="text-slate-900">{{ m.rango || (m.esMilitar ? '—' : 'Civil') }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Cargo</dt>
+        <dd class="text-slate-900">{{ m.cargo || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Departamento</dt>
+        <dd class="text-slate-900">{{ m.departamento || '—' }}</dd>
+      </div>
+    </dl>
+  }
+</ng-template>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  <!-- Solicitante -->
+  <section class="tarjeta" aria-labelledby="sec-solicitante">
+    <header class="border-b border-slate-200 px-5 py-3">
+      <h2 id="sec-solicitante" class="font-semibold text-slate-900">Quién solicita</h2>
+      <p class="text-xs text-slate-500">
+        Búsqueda en SIPFFAA. El cargo y el departamento se toman del miembro; puede cambiarlos.
+      </p>
+    </header>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo
+        etiqueta="Solicitante"
+        para="solicitante"
+        [control]="formulario.controls.solicitante"
+        class="sm:col-span-2"
+        requerido
+      >
+        <app-buscador-sipffaa tipo="miembro" idControl="solicitante" formControlName="solicitante" />
+        <ng-container
+          [ngTemplateOutlet]="fichaMiembro"
+          [ngTemplateOutletContext]="{ $implicit: v().solicitante }"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Cargo del solicitante"
+        para="cargoSolicitante"
+        [control]="formulario.controls.cargoSolicitante"
+        requerido
+      >
+        <app-buscador-sipffaa
+          tipo="cargo"
+          idControl="cargoSolicitante"
+          formControlName="cargoSolicitante"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Departamento que solicita"
+        para="departamento"
+        [control]="formulario.controls.departamento"
+        requerido
+      >
+        <app-buscador-sipffaa tipo="departamento" idControl="departamento" formControlName="departamento" />
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Asignado y chofer -->
+  <section class="tarjeta" aria-labelledby="sec-asignado">
+    <h2 id="sec-asignado" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      A quién se asigna y quién conduce
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <fieldset class="sm:col-span-2">
+        <legend class="mb-2 text-sm font-medium text-slate-700">Tipo de asignación</legend>
+        <div class="flex flex-wrap gap-4 text-sm">
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="tipoAsignacion"
+              [value]="tipos.Persona"
+            />
+            A título personal
+          </label>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="tipoAsignacion"
+              [value]="tipos.Cargo"
+            />
+            Al cargo (la persona lo recibe en nombre del cargo)
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="sm:col-span-2">
+        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            class="size-4 rounded border-slate-300 accent-primario"
+            formControlName="mismoSolicitante"
+          />
+          Se asigna al mismo solicitante
+        </label>
+      </div>
+
+      @if (!v().mismoSolicitante) {
+        <app-campo
+          etiqueta="Asignado a"
+          para="asignado"
+          [control]="formulario.controls.asignado"
+          class="sm:col-span-2"
+          requerido
+        >
+          <app-buscador-sipffaa tipo="miembro" idControl="asignado" formControlName="asignado" />
+          <ng-container
+            [ngTemplateOutlet]="fichaMiembro"
+            [ngTemplateOutletContext]="{ $implicit: v().asignado }"
+          />
+        </app-campo>
+      }
+
+      @if (v().tipoAsignacion === tipos.Cargo) {
+        <app-campo
+          etiqueta="Cargo al que se asigna"
+          para="cargoAsignado"
+          [control]="formulario.controls.cargoAsignado"
+          class="sm:col-span-2"
+          requerido
+        >
+          <app-buscador-sipffaa tipo="cargo" idControl="cargoAsignado" formControlName="cargoAsignado" />
+        </app-campo>
+      }
+
+      <app-campo
+        etiqueta="Chofer asignado"
+        para="chofer"
+        [control]="formulario.controls.chofer"
+        class="sm:col-span-2"
+        requerido
+      >
+        <app-buscador-sipffaa tipo="miembro" idControl="chofer" formControlName="chofer" />
+        <ng-container
+          [ngTemplateOutlet]="fichaMiembro"
+          [ngTemplateOutletContext]="{ $implicit: v().chofer }"
+        />
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Período y vehículo -->
+  <section class="tarjeta" aria-labelledby="sec-vehiculo">
+    <h2 id="sec-vehiculo" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Período y vehículo
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo
+        etiqueta="Salida"
+        para="fechaSalida"
+        [control]="formulario.controls.fechaSalida"
+        requerido
+      >
+        <input id="fechaSalida" type="datetime-local" class="control" formControlName="fechaSalida" />
+      </app-campo>
+      <app-campo
+        etiqueta="Retorno estimado"
+        para="fechaRetornoEstimada"
+        [control]="formulario.controls.fechaRetornoEstimada"
+        requerido
+      >
+        <input
+          id="fechaRetornoEstimada"
+          type="datetime-local"
+          class="control"
+          formControlName="fechaRetornoEstimada"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Vehículo"
+        para="vehiculoId"
+        [control]="formulario.controls.vehiculoId"
+        class="sm:col-span-2"
+        [ayuda]="
+          !fechasValidas()
+            ? 'Indique primero la salida y el retorno: solo se muestran los vehículos libres en ese período.'
+            : cargandoVehiculos()
+              ? 'Buscando vehículos disponibles…'
+              : vehiculos().length + ' vehículo(s) disponible(s) en el período.'
+        "
+        requerido
+      >
+        <select id="vehiculoId" class="control" formControlName="vehiculoId">
+          <option [ngValue]="null" disabled>
+            {{ fechasValidas() && !cargandoVehiculos() && vehiculos().length === 0 ? 'No hay vehículos libres en ese período' : 'Seleccione…' }}
+          </option>
+          @for (vehiculo of vehiculos(); track vehiculo.id) {
+            <option [ngValue]="vehiculo.id">{{ vehiculo.nombre }}</option>
+          }
+        </select>
+      </app-campo>
+      <app-campo
+        etiqueta="Propósito"
+        para="proposito"
+        [control]="formulario.controls.proposito"
+        class="sm:col-span-2"
+        requerido
+      >
+        <textarea id="proposito" rows="3" class="control" formControlName="proposito"></textarea>
+      </app-campo>
+      <app-campo
+        etiqueta="Destino"
+        para="destino"
+        [control]="formulario.controls.destino"
+        class="sm:col-span-2"
+      >
+        <input id="destino" class="control" formControlName="destino" />
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Documentos -->
+  <section class="tarjeta" aria-labelledby="sec-adjuntos">
+    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+      <div>
+        <h2 id="sec-adjuntos" class="font-semibold text-slate-900">Documentos</h2>
+        <p class="text-xs text-slate-500">Al menos uno, ej. el oficio de solicitud.</p>
+      </div>
+      <button type="button" class="btn btn-texto btn-sm" (click)="agregarAdjunto()">
+        <app-icono nombre="mas" [tamano]="16" /> Agregar
+      </button>
+    </header>
+    <div class="space-y-4 p-5" formArrayName="adjuntos">
+      @for (adjunto of adjuntos.controls; track adjunto; let i = $index) {
+        <div class="grid gap-4 sm:grid-cols-3" [formGroupName]="i">
+          <app-campo
+            etiqueta="Tipo de documento"
+            [para]="'tipoDocumento' + i"
+            [control]="adjunto.controls.tipoDocumentoId"
+            requerido
+          >
+            <select [id]="'tipoDocumento' + i" class="control" formControlName="tipoDocumentoId">
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              @for (t of tiposDocumento(); track t.id) {
+                <option [ngValue]="t.id">{{ t.nombre }}</option>
+              }
+            </select>
+          </app-campo>
+          <app-campo
+            etiqueta="Archivo"
+            [para]="'archivo' + i"
+            [control]="adjunto.controls.archivo"
+            class="sm:col-span-2"
+            requerido
+          >
+            <div class="flex items-start gap-2">
+              <app-selector-archivo
+                class="flex-1"
+                [idControl]="'archivo' + i"
+                formControlName="archivo"
+              />
+              @if (adjuntos.length > 1) {
+                <button
+                  type="button"
+                  class="btn btn-texto btn-sm mt-2"
+                  (click)="quitarAdjunto(i)"
+                  [attr.aria-label]="'Quitar documento ' + (i + 1)"
+                >
+                  <app-icono nombre="cerrar" [tamano]="16" />
+                </button>
+              }
+            </div>
+          </app-campo>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/asignaciones" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      Registrar asignación
+    </button>
+  </div>
+</form>
