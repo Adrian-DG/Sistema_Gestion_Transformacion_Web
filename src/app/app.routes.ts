@@ -20,6 +20,13 @@ const modulos: Routes = [
       import('./features/asignaciones/asignaciones.routes').then((m) => m.ASIGNACIONES_ROUTES),
   },
   {
+    path: 'combustible',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionCombustible] },
+    loadChildren: () =>
+      import('./features/combustible/combustible.routes').then((m) => m.COMBUSTIBLE_ROUTES),
+  },
+  {
     path: 'apariencia',
     canActivate: [permisoGuard],
     data: { permisos: [Permiso.Administrador] },

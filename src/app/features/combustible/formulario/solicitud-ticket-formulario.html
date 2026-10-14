@@ -1,0 +1,358 @@
+<a
+  routerLink="/combustible"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Combustible
+</a>
+
+<app-encabezado-pagina
+  seccion="Combustible"
+  titulo="Nueva solicitud de tickets"
+  descripcion="Los números de ticket se generan en secuencia al registrar. La solicitud queda pendiente hasta su aprobación."
+/>
+
+<!-- Datos de un miembro elegido en SIPFFAA: cédula, rango, cargo y departamento. -->
+<ng-template #fichaMiembro let-m>
+  @if (m) {
+    <dl
+      class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:grid-cols-4"
+    >
+      <div>
+        <dt class="text-slate-500">Cédula</dt>
+        <dd class="font-mono text-slate-900">{{ m.cedula }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Rango</dt>
+        <dd class="text-slate-900">{{ m.rango || (m.esMilitar ? '—' : 'Civil') }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Cargo</dt>
+        <dd class="text-slate-900">{{ m.cargo || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500">Departamento</dt>
+        <dd class="text-slate-900">{{ m.departamento || '—' }}</dd>
+      </div>
+    </dl>
+  }
+</ng-template>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  <!-- Solicitante -->
+  <section class="tarjeta" aria-labelledby="sec-solicitante">
+    <header class="border-b border-slate-200 px-5 py-3">
+      <h2 id="sec-solicitante" class="font-semibold text-slate-900">Quién solicita</h2>
+      <p class="text-xs text-slate-500">
+        Búsqueda en SIPFFAA. El cargo y el departamento se toman del miembro; puede cambiarlos.
+      </p>
+    </header>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo
+        etiqueta="Solicitante"
+        para="solicitante"
+        [control]="formulario.controls.solicitante"
+        class="sm:col-span-2"
+        requerido
+      >
+        <app-buscador-sipffaa tipo="miembro" idControl="solicitante" formControlName="solicitante" />
+        <ng-container
+          [ngTemplateOutlet]="fichaMiembro"
+          [ngTemplateOutletContext]="{ $implicit: v().solicitante }"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Cargo del solicitante"
+        para="cargoSolicitante"
+        [control]="formulario.controls.cargoSolicitante"
+        requerido
+      >
+        <app-buscador-sipffaa
+          tipo="cargo"
+          idControl="cargoSolicitante"
+          formControlName="cargoSolicitante"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Departamento que solicita"
+        para="departamento"
+        [control]="formulario.controls.departamento"
+        requerido
+      >
+        <app-buscador-sipffaa
+          tipo="departamento"
+          idControl="departamento"
+          formControlName="departamento"
+        />
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Beneficiario -->
+  <section class="tarjeta" aria-labelledby="sec-beneficiario">
+    <h2
+      id="sec-beneficiario"
+      class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+    >
+      A quién se entregan los tickets
+    </h2>
+    <div class="grid gap-5 p-5">
+      <fieldset>
+        <legend class="sr-only">Tipo de entrega</legend>
+        <div class="flex flex-wrap gap-4 text-sm">
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="tipoBeneficiario"
+              [value]="beneficiarios.Persona"
+            />
+            A una persona
+          </label>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="tipoBeneficiario"
+              [value]="beneficiarios.Cargo"
+            />
+            A un cargo (los recibe quien lo ocupe)
+          </label>
+        </div>
+      </fieldset>
+
+      @if (v().tipoBeneficiario === beneficiarios.Persona) {
+        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            class="size-4 rounded border-slate-300 accent-primario"
+            formControlName="mismoSolicitante"
+          />
+          Se entregan al mismo solicitante
+        </label>
+
+        @if (!v().mismoSolicitante) {
+          <app-campo
+            etiqueta="Entregar a"
+            para="beneficiario"
+            [control]="formulario.controls.beneficiario"
+            requerido
+          >
+            <app-buscador-sipffaa
+              tipo="miembro"
+              idControl="beneficiario"
+              formControlName="beneficiario"
+            />
+            <ng-container
+              [ngTemplateOutlet]="fichaMiembro"
+              [ngTemplateOutletContext]="{ $implicit: v().beneficiario }"
+            />
+          </app-campo>
+        }
+      } @else {
+        <app-campo
+          etiqueta="Cargo"
+          para="cargoBeneficiario"
+          [control]="formulario.controls.cargoBeneficiario"
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="cargo"
+            idControl="cargoBeneficiario"
+            formControlName="cargoBeneficiario"
+          />
+        </app-campo>
+      }
+    </div>
+  </section>
+
+  <!-- Tickets -->
+  <section class="tarjeta" aria-labelledby="sec-tickets">
+    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+      <div>
+        <h2 id="sec-tickets" class="font-semibold text-slate-900">Tickets</h2>
+        <p class="text-xs text-slate-500">
+          Cada línea genera la cantidad indicada de tickets con los mismos galones.
+        </p>
+      </div>
+      <button type="button" class="btn btn-texto btn-sm" (click)="agregarLinea()">
+        <app-icono nombre="mas" [tamano]="16" /> Agregar línea
+      </button>
+    </header>
+    <div class="space-y-4 p-5" formArrayName="lineas">
+      @for (linea of lineas.controls; track linea; let i = $index) {
+        <div class="grid items-start gap-4 sm:grid-cols-[1fr_1fr_1fr_auto]" [formGroupName]="i">
+          <app-campo etiqueta="Combustible" [para]="'tipoCombustible' + i" [control]="linea.controls.tipoCombustible">
+            <select [id]="'tipoCombustible' + i" class="control" formControlName="tipoCombustible">
+              @for (tipo of combustibles; track tipo) {
+                <option [ngValue]="tipo">{{ nombreCombustible[tipo] }}</option>
+              }
+            </select>
+          </app-campo>
+          <app-campo
+            etiqueta="Galones por ticket"
+            [para]="'galones' + i"
+            [control]="linea.controls.galones"
+            requerido
+          >
+            <input
+              [id]="'galones' + i"
+              type="number"
+              min="0.01"
+              step="0.01"
+              inputmode="decimal"
+              class="control"
+              formControlName="galones"
+            />
+          </app-campo>
+          <app-campo
+            etiqueta="Cantidad de tickets"
+            [para]="'cantidad' + i"
+            [control]="linea.controls.cantidad"
+            requerido
+          >
+            <input
+              [id]="'cantidad' + i"
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              inputmode="numeric"
+              class="control"
+              formControlName="cantidad"
+            />
+          </app-campo>
+          @if (lineas.length > 1) {
+            <button
+              type="button"
+              class="btn btn-texto btn-sm sm:mt-7"
+              (click)="quitarLinea(i)"
+              [attr.aria-label]="'Quitar línea ' + (i + 1)"
+            >
+              <app-icono nombre="cerrar" [tamano]="16" />
+            </button>
+          }
+        </div>
+      }
+
+      @if (cantidadTickets() > 0) {
+        <div class="space-y-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+          <p class="text-slate-700">
+            <span class="font-semibold">{{ cantidadTickets() }}</span> ticket(s)
+            @if (numerosPrevistos(); as numeros) {
+              · números previstos <span class="font-mono">{{ numeros }}</span>
+            }
+          </p>
+          @for (r of resumenCombustible(); track r.tipo) {
+            <p [class]="r.excede ? 'text-red-700' : 'text-slate-600'">
+              {{ nombreCombustible[r.tipo] }}: {{ r.galones | number: '1.0-2' }} gal
+              @if (r.disponible !== null) {
+                de {{ r.disponible | number: '1.0-2' }} gal disponibles
+              }
+              @if (r.excede) {
+                — no alcanza; la solicitud no podrá aprobarse hasta que haya existencia.
+              }
+            </p>
+          }
+          <p class="text-xs text-slate-500">
+            Los números son referenciales: se asignan al registrar, en el orden en que se guardan las
+            solicitudes.
+          </p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Propósito -->
+  <section class="tarjeta" aria-labelledby="sec-proposito">
+    <h2 id="sec-proposito" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Propósito
+    </h2>
+    <div class="p-5">
+      <app-campo
+        etiqueta="Para qué se solicitan"
+        para="proposito"
+        [control]="formulario.controls.proposito"
+        requerido
+      >
+        <textarea id="proposito" rows="3" class="control" formControlName="proposito"></textarea>
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Documentos -->
+  <section class="tarjeta" aria-labelledby="sec-adjuntos">
+    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+      <div>
+        <h2 id="sec-adjuntos" class="font-semibold text-slate-900">Documentos</h2>
+        <p class="text-xs text-slate-500">Al menos uno, ej. el oficio de solicitud.</p>
+      </div>
+      <button type="button" class="btn btn-texto btn-sm" (click)="agregarAdjunto()">
+        <app-icono nombre="mas" [tamano]="16" /> Agregar
+      </button>
+    </header>
+    <div class="space-y-4 p-5" formArrayName="adjuntos">
+      @for (adjunto of adjuntos.controls; track adjunto; let i = $index) {
+        <div class="grid gap-4 sm:grid-cols-3" [formGroupName]="i">
+          <app-campo
+            etiqueta="Tipo de documento"
+            [para]="'tipoDocumento' + i"
+            [control]="adjunto.controls.tipoDocumentoId"
+            requerido
+          >
+            <select [id]="'tipoDocumento' + i" class="control" formControlName="tipoDocumentoId">
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              @for (t of tiposDocumento(); track t.id) {
+                <option [ngValue]="t.id">{{ t.nombre }}</option>
+              }
+            </select>
+          </app-campo>
+          <app-campo
+            etiqueta="Archivo"
+            [para]="'archivo' + i"
+            [control]="adjunto.controls.archivo"
+            class="sm:col-span-2"
+            requerido
+          >
+            <div class="flex items-start gap-2">
+              <app-selector-archivo
+                class="flex-1"
+                [idControl]="'archivo' + i"
+                formControlName="archivo"
+              />
+              @if (adjuntos.length > 1) {
+                <button
+                  type="button"
+                  class="btn btn-texto btn-sm mt-2"
+                  (click)="quitarAdjunto(i)"
+                  [attr.aria-label]="'Quitar documento ' + (i + 1)"
+                >
+                  <app-icono nombre="cerrar" [tamano]="16" />
+                </button>
+              }
+            </div>
+          </app-campo>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/combustible" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      Registrar solicitud
+    </button>
+  </div>
+</form>
