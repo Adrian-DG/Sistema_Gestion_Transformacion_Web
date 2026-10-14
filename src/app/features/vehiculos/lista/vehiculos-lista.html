@@ -1,0 +1,80 @@
+<app-encabezado-pagina
+  seccion="Inventario"
+  titulo="Vehículos"
+  descripcion="Flota de la institución. Los vehículos no se eliminan: se marcan fuera de servicio."
+>
+  <a routerLink="nuevo" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nuevo vehículo
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="border-b border-slate-200 p-4">
+    <label class="relative block">
+      <span class="sr-only">Buscar vehículos</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por placa, matrícula, chasis, marca o modelo"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="q() ? 'Ningún vehículo coincide con la búsqueda' : 'No hay vehículos registrados'"
+  >
+    <ng-template appCelda="placa" let-v>
+      <a
+        [routerLink]="[v.id, 'editar']"
+        class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
+        >{{ v.placa }}</a
+      >
+    </ng-template>
+
+    <ng-template appCelda="vehiculo" let-v>
+      <span class="block text-slate-900">{{ v.marca }} {{ v.modelo }}</span>
+      <span class="block text-xs text-slate-500">{{ v.fabricacion }}</span>
+    </ng-template>
+
+    <ng-template appCelda="identificacion" let-v>
+      <span class="block font-mono text-xs">{{ v.matricula }}</span>
+      <span class="block font-mono text-xs text-slate-500">{{ v.chasis }}</span>
+    </ng-template>
+
+    <ng-template appCelda="tipo" let-v>
+      <span class="block">{{ v.tipo }}</span>
+      <span class="block text-xs text-slate-500">{{ v.color }}</span>
+    </ng-template>
+
+    <ng-template appCelda="estado" let-v>
+      <app-estado-badge [estado]="v.disponible ? 'Disponible' : 'Fuera de servicio'" />
+    </ng-template>
+
+    <ng-template appCelda="acciones" let-v>
+      <a
+        [routerLink]="[v.id, 'editar']"
+        class="btn btn-texto btn-sm"
+        [attr.aria-label]="'Editar vehículo ' + v.placa"
+      >
+        Editar
+      </a>
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

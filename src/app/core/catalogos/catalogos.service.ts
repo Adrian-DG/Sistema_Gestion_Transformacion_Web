@@ -50,6 +50,10 @@ export class CatalogosService {
     return this.cacheado<ElementoCatalogo[]>('aseguradoras');
   }
 
+  tiposDocumento(): Observable<ElementoCatalogo[]> {
+    return this.cacheado<ElementoCatalogo[]>('tipos-documento');
+  }
+
   /** Vehículos para listas de selección; nombre: "Placa · Marca Modelo (año)". */
   vehiculos(): Observable<ElementoCatalogo[]> {
     return this.http.get<ElementoCatalogo[]>(api('catalogos/vehiculos'));

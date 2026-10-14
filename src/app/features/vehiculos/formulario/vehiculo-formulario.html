@@ -1,0 +1,170 @@
+<a
+  routerLink="/vehiculos"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Vehículos
+</a>
+
+<app-encabezado-pagina
+  seccion="Vehículos"
+  [titulo]="esEdicion() ? 'Editar vehículo' : 'Nuevo vehículo'"
+  [descripcion]="esEdicion() ? placaActual() : 'Registre los datos del vehículo.'"
+/>
+
+@if (cargando()) {
+  <div class="flex justify-center py-16"><app-cargando texto="Cargando vehículo…" /></div>
+} @else {
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+    @if (errorGeneral(); as mensaje) {
+      <div
+        class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        role="alert"
+      >
+        <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+        <span>{{ mensaje }}</span>
+      </div>
+    }
+
+    <section class="tarjeta" aria-labelledby="sec-identificacion">
+      <h2
+        id="sec-identificacion"
+        class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+      >
+        Identificación
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <app-campo etiqueta="Placa" para="placa" [control]="formulario.controls.placa" requerido>
+          <input
+            id="placa"
+            class="control font-mono uppercase"
+            formControlName="placa"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </app-campo>
+        <app-campo
+          etiqueta="Matrícula"
+          para="matricula"
+          [control]="formulario.controls.matricula"
+          requerido
+        >
+          <input
+            id="matricula"
+            class="control font-mono uppercase"
+            formControlName="matricula"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </app-campo>
+        <app-campo etiqueta="Chasis" para="chasis" [control]="formulario.controls.chasis" requerido>
+          <input
+            id="chasis"
+            class="control font-mono uppercase"
+            formControlName="chasis"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </app-campo>
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-caracteristicas">
+      <h2
+        id="sec-caracteristicas"
+        class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+      >
+        Características
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <app-campo etiqueta="Marca" para="marcaId" [control]="formulario.controls.marcaId" requerido>
+          <select id="marcaId" class="control" formControlName="marcaId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (m of marcas(); track m.id) {
+              <option [ngValue]="m.id">{{ m.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Modelo"
+          para="modeloId"
+          [control]="formulario.controls.modeloId"
+          [ayuda]="formulario.controls.marcaId.value ? undefined : 'Elija primero la marca.'"
+          requerido
+        >
+          <select id="modeloId" class="control" formControlName="modeloId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (m of modelosDeMarca(); track m.id) {
+              <option [ngValue]="m.id">{{ m.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Año de fabricación"
+          para="fabricacion"
+          [control]="formulario.controls.fabricacion"
+          requerido
+        >
+          <input
+            id="fabricacion"
+            type="number"
+            class="control"
+            formControlName="fabricacion"
+            min="1900"
+            [max]="anioMaximo"
+            inputmode="numeric"
+          />
+        </app-campo>
+        <app-campo etiqueta="Tipo" para="tipoId" [control]="formulario.controls.tipoId" requerido>
+          <select id="tipoId" class="control" formControlName="tipoId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (t of tipos(); track t.id) {
+              <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo etiqueta="Color" para="colorId" [control]="formulario.controls.colorId" requerido>
+          <select id="colorId" class="control" formControlName="colorId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (c of colores(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+      </div>
+    </section>
+
+    @if (esEdicion()) {
+      <section class="tarjeta" aria-labelledby="sec-estado">
+        <h2 id="sec-estado" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+          Estado
+        </h2>
+        <div class="p-5">
+          <label class="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+              formControlName="disponible"
+            />
+            <span>
+              <span class="block text-sm font-medium text-slate-800">En servicio</span>
+              <span class="block text-xs text-slate-500">
+                Desmárquelo si el vehículo está fuera de servicio: no se podrá asignar, pero conserva
+                su historial de asignaciones, pólizas y combustible.
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+    }
+
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a routerLink="/vehiculos" class="btn btn-contorno">Cancelar</a>
+      <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+        @if (guardando()) {
+          <app-cargando class="text-current" />
+        }
+        {{ esEdicion() ? 'Guardar cambios' : 'Registrar vehículo' }}
+      </button>
+    </div>
+  </form>
+}
