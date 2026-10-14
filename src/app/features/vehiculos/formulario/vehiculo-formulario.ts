@@ -11,24 +11,31 @@ import { aplicarErroresServidor } from '../../../shared/formularios/errores-serv
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { DatosVehiculo, VehiculosService } from '../vehiculos.service';
+import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
+import {
+  DatosVehiculo,
+  EstatusVehiculo,
+  NOMBRES_ESTATUS_VEHICULO,
+  VehiculosService,
+} from '../vehiculos.service';
 
 const ANIO_MAXIMO = new Date().getFullYear() + 1;
 
 /** Errores de la API que corresponden a un campo (códigos "Vehiculo.PlacaDuplicado", etc.). */
 const CAMPO_POR_CODIGO: [RegExp, string][] = [
   [/Placa/i, 'placa'],
+  [/Ficha/i, 'ficha'],
   [/Chasis/i, 'chasis'],
   [/Matricula/i, 'matricula'],
 ];
 
 /**
  * Alta (sin `id`) y edición (con `id`) de vehículos. Al guardar vuelve al listado. En edición se
- * puede marcar el vehículo fuera de servicio; no se eliminan.
+ * ve su estatus, que no se edita aquí; no se eliminan.
  */
 @Component({
   selector: 'app-vehiculo-formulario',
-  imports: [ReactiveFormsModule, RouterLink, EncabezadoPagina, Campo, Cargando, Icono],
+  imports: [ReactiveFormsModule, RouterLink, EncabezadoPagina, Campo, Cargando, Icono, EstadoBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehiculo-formulario.html',
 })
@@ -46,6 +53,7 @@ export class VehiculoFormulario {
 
   protected readonly formulario = this.fb.group({
     placa: ['', [Validators.required, Validators.maxLength(10)]],
+    ficha: ['', Validators.maxLength(20)],
     matricula: ['', [Validators.required, Validators.maxLength(30)]],
     chasis: ['', [Validators.required, Validators.maxLength(50)]],
     fabricacion: this.fb.control<number | null>(null, [
@@ -57,7 +65,6 @@ export class VehiculoFormulario {
     modeloId: this.fb.control<string | null>(null, Validators.required),
     tipoId: this.fb.control<string | null>(null, Validators.required),
     colorId: this.fb.control<string | null>(null, Validators.required),
-    disponible: [true],
   });
 
   protected readonly marcas = toSignal(this.catalogos.marcas().pipe(catchError(() => of([]))), {
@@ -88,6 +95,8 @@ export class VehiculoFormulario {
   protected readonly guardando = signal(false);
   protected readonly errorGeneral = signal<string | null>(null);
   protected readonly placaActual = signal('');
+  protected readonly estatus = signal<EstatusVehiculo | null>(null);
+  protected readonly nombresEstatus = NOMBRES_ESTATUS_VEHICULO;
 
   constructor() {
     // Al cambiar de marca, el modelo elegido deja de ser válido.
@@ -117,8 +126,10 @@ export class VehiculoFormulario {
         }
 
         this.placaActual.set(vehiculo.placa);
+        this.estatus.set(vehiculo.estatus);
         this.formulario.patchValue({
           placa: vehiculo.placa,
+          ficha: vehiculo.ficha ?? '',
           matricula: vehiculo.matricula,
           chasis: vehiculo.chasis,
           fabricacion: vehiculo.fabricacion,
@@ -126,7 +137,6 @@ export class VehiculoFormulario {
           modeloId: vehiculo.modeloId,
           tipoId: vehiculo.tipoId,
           colorId: vehiculo.colorId,
-          disponible: vehiculo.disponible,
         });
       });
   }
@@ -142,6 +152,7 @@ export class VehiculoFormulario {
     const v = this.formulario.getRawValue();
     const datos: DatosVehiculo = {
       placa: v.placa.trim().toUpperCase(),
+      ficha: v.ficha.trim().toUpperCase() || null,
       matricula: v.matricula.trim().toUpperCase(),
       chasis: v.chasis.trim().toUpperCase(),
       fabricacion: v.fabricacion!,
@@ -155,7 +166,7 @@ export class VehiculoFormulario {
     try {
       const id = this.id();
       if (id) {
-        await firstValueFrom(this.vehiculos.actualizar(id, { ...datos, disponible: v.disponible }));
+        await firstValueFrom(this.vehiculos.actualizar(id, datos));
         this.notificaciones.exito(`Vehículo ${datos.placa} actualizado.`);
       } else {
         await firstValueFrom(this.vehiculos.crear(datos));

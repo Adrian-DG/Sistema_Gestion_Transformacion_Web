@@ -15,7 +15,7 @@ import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { CambioPagina, Paginador } from '../../../shared/ui/paginador/paginador';
 import { Celda, Columna, Tabla } from '../../../shared/ui/tabla/tabla';
-import { VehiculoResumen, VehiculosService } from '../vehiculos.service';
+import { nombreEstatusVehiculo, VehiculoResumen, VehiculosService } from '../vehiculos.service';
 
 const ESPERA_BUSQUEDA_MS = 350;
 
@@ -29,6 +29,7 @@ const ESPERA_BUSQUEDA_MS = 350;
 export class VehiculosLista {
   private readonly vehiculos = inject(VehiculosService);
   private readonly router = inject(Router);
+  protected readonly nombreEstatus = nombreEstatusVehiculo;
 
   // Parámetros de la URL (withComponentInputBinding).
   readonly pagina = input(1, { transform: (v: unknown) => Math.max(1, numberAttribute(v, 1)) });

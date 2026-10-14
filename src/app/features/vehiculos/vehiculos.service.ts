@@ -3,17 +3,31 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Paginado, SIN_AVISO_ERROR, api } from '../../core/api/api';
 
+/** Espejo de EstatusVehiculo del backend. NoDisponible: en misión; los demás los fija el taller. */
+export type EstatusVehiculo = 'Disponible' | 'NoDisponible' | 'EnMantenimiento' | 'Inactivo';
+
+export const NOMBRES_ESTATUS_VEHICULO: Record<EstatusVehiculo, string> = {
+  Disponible: 'Disponible',
+  NoDisponible: 'No disponible',
+  EnMantenimiento: 'En mantenimiento',
+  Inactivo: 'Inactivo',
+};
+
+export const nombreEstatusVehiculo = (estatus: string): string =>
+  NOMBRES_ESTATUS_VEHICULO[estatus as EstatusVehiculo] ?? estatus;
+
 export interface VehiculoResumen {
   id: string;
   chasis: string;
   matricula: string;
   placa: string;
+  ficha: string | null;
   marca: string;
   modelo: string;
   fabricacion: number;
   color: string;
   tipo: string;
-  disponible: boolean;
+  estatus: EstatusVehiculo;
 }
 
 export interface VehiculoDetalle {
@@ -21,6 +35,7 @@ export interface VehiculoDetalle {
   chasis: string;
   matricula: string;
   placa: string;
+  ficha: string | null;
   fabricacion: number;
   marcaId: string;
   marca: string;
@@ -30,13 +45,14 @@ export interface VehiculoDetalle {
   tipo: string;
   colorId: string;
   color: string;
-  disponible: boolean;
+  estatus: EstatusVehiculo;
 }
 
 export interface DatosVehiculo {
   chasis: string;
   matricula: string;
   placa: string;
+  ficha: string | null;
   fabricacion: number;
   marcaId: string;
   modeloId: string;
@@ -53,7 +69,7 @@ export interface FiltroVehiculos {
 /** Los formularios muestran los errores en sus campos, sin aviso global. */
 const SIN_AVISO = { context: new HttpContext().set(SIN_AVISO_ERROR, true) };
 
-/** Flota de vehículos. No se eliminan: se marcan fuera de servicio. */
+/** Flota de vehículos. No se eliminan: la baja (en el taller) los deja inactivos. */
 @Injectable({ providedIn: 'root' })
 export class VehiculosService {
   private readonly http = inject(HttpClient);
@@ -72,8 +88,8 @@ export class VehiculosService {
     return this.http.post<string>(api('vehiculos'), datos, SIN_AVISO);
   }
 
-  /** `disponible: false` deja el vehículo fuera de servicio. */
-  actualizar(id: string, datos: DatosVehiculo & { disponible: boolean }): Observable<void> {
+  /** Solo los datos; el estatus lo cambia el taller. */
+  actualizar(id: string, datos: DatosVehiculo): Observable<void> {
     return this.http.put<void>(api(`vehiculos/${id}`), datos, SIN_AVISO);
   }
 }

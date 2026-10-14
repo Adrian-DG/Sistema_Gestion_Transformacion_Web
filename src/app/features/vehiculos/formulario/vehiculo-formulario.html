@@ -42,6 +42,15 @@
             spellcheck="false"
           />
         </app-campo>
+        <app-campo etiqueta="Ficha" para="ficha" [control]="formulario.controls.ficha">
+          <input
+            id="ficha"
+            class="control font-mono uppercase"
+            formControlName="ficha"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </app-campo>
         <app-campo
           etiqueta="Matrícula"
           para="matricula"
@@ -133,26 +142,17 @@
       </div>
     </section>
 
-    @if (esEdicion()) {
+    @if (estatus(); as e) {
       <section class="tarjeta" aria-labelledby="sec-estado">
         <h2 id="sec-estado" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
-          Estado
+          Estatus
         </h2>
-        <div class="p-5">
-          <label class="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
-              formControlName="disponible"
-            />
-            <span>
-              <span class="block text-sm font-medium text-slate-800">En servicio</span>
-              <span class="block text-xs text-slate-500">
-                Desmárquelo si el vehículo está fuera de servicio: no se podrá asignar, pero conserva
-                su historial de asignaciones, pólizas y combustible.
-              </span>
-            </span>
-          </label>
+        <div class="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:gap-4">
+          <app-estado-badge [estado]="nombresEstatus[e]" />
+          <p class="text-xs text-slate-500">
+            No se edita aquí: queda No disponible mientras tenga una misión en curso, y el taller lo
+            pasa a En mantenimiento o, si se da de baja, a Inactivo.
+          </p>
         </div>
       </section>
     }

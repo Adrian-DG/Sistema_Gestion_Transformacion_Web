@@ -1,7 +1,7 @@
 <app-encabezado-pagina
   seccion="Inventario"
   titulo="Vehículos"
-  descripcion="Flota de la institución. Los vehículos no se eliminan: se marcan fuera de servicio."
+  descripcion="Flota de la institución. Los vehículos no se eliminan: la baja, que se hace en el taller, los deja inactivos."
 >
   <a routerLink="nuevo" class="btn btn-primario">
     <app-icono nombre="mas" [tamano]="18" /> Nuevo vehículo
@@ -20,7 +20,7 @@
       <input
         type="search"
         class="control pl-10"
-        placeholder="Buscar por placa, matrícula, chasis, marca o modelo"
+        placeholder="Buscar por placa, ficha, matrícula, chasis, marca o modelo"
         [value]="q()"
         (input)="buscar($any($event.target).value)"
       />
@@ -39,6 +39,9 @@
         class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
         >{{ v.placa }}</a
       >
+      @if (v.ficha) {
+        <span class="block font-mono text-xs text-slate-500">Ficha {{ v.ficha }}</span>
+      }
     </ng-template>
 
     <ng-template appCelda="vehiculo" let-v>
@@ -57,7 +60,7 @@
     </ng-template>
 
     <ng-template appCelda="estado" let-v>
-      <app-estado-badge [estado]="v.disponible ? 'Disponible' : 'Fuera de servicio'" />
+      <app-estado-badge [estado]="nombreEstatus(v.estatus)" />
     </ng-template>
 
     <ng-template appCelda="acciones" let-v>
