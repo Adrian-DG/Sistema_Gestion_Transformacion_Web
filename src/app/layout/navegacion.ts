@@ -71,25 +71,6 @@ export const MENU: GrupoMenu[] = [
     ],
   },
   {
-    titulo: 'Organización',
-    elementos: [
-      {
-        titulo: 'Dependencias y cargos',
-        ruta: '/organizacion',
-        icono: 'organizacion',
-        permisos: [],
-        descripcion: 'Estructura y titulares de cargos',
-      },
-      {
-        titulo: 'Personas',
-        ruta: '/personas',
-        icono: 'personas',
-        permisos: [],
-        descripcion: 'Solicitantes y beneficiarios',
-      },
-    ],
-  },
-  {
     titulo: 'Análisis',
     elementos: [
       {
