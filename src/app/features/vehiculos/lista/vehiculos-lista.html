@@ -31,7 +31,9 @@
     [columnas]="columnas"
     [filas]="filas()"
     [cargando]="cargando()"
-    [mensajeVacio]="q() ? 'Ningún vehículo coincide con la búsqueda' : 'No hay vehículos registrados'"
+    [mensajeVacio]="
+      q() ? 'Ningún vehículo coincide con la búsqueda' : 'No hay vehículos registrados'
+    "
   >
     <ng-template appCelda="placa" let-v>
       <a
@@ -60,7 +62,13 @@
     </ng-template>
 
     <ng-template appCelda="estado" let-v>
-      <app-estado-badge [estado]="nombreEstatus(v.estatus)" />
+      <div class="flex flex-wrap gap-1">
+        <app-estado-badge [estado]="nombreEstatus(v.estatus)" />
+        @if (v.enGarantia) {
+          <app-estado-badge estado="En garantía" />
+        }
+      </div>
+      <span class="mt-0.5 block text-xs text-slate-500">{{ v.kilometraje | number }} km</span>
     </ng-template>
 
     <ng-template appCelda="acciones" let-v>

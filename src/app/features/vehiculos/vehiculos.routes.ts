@@ -15,8 +15,7 @@ export const VEHICULOS_ROUTES: Routes = [
   {
     path: ':id/historial',
     title: 'Historial del vehículo',
-    loadComponent: () =>
-      import('./historial/vehiculo-historial').then((m) => m.VehiculoHistorial),
+    loadComponent: () => import('./historial/vehiculo-historial').then((m) => m.VehiculoHistorial),
   },
   {
     path: ':id/editar',

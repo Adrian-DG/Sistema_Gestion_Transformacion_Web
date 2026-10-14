@@ -85,7 +85,12 @@
         Características
       </h2>
       <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
-        <app-campo etiqueta="Marca" para="marcaId" [control]="formulario.controls.marcaId" requerido>
+        <app-campo
+          etiqueta="Marca"
+          para="marcaId"
+          [control]="formulario.controls.marcaId"
+          requerido
+        >
           <select id="marcaId" class="control" formControlName="marcaId">
             <option [ngValue]="null" disabled>Seleccione…</option>
             @for (m of marcas(); track m.id) {
@@ -131,7 +136,12 @@
             }
           </select>
         </app-campo>
-        <app-campo etiqueta="Color" para="colorId" [control]="formulario.controls.colorId" requerido>
+        <app-campo
+          etiqueta="Color"
+          para="colorId"
+          [control]="formulario.controls.colorId"
+          requerido
+        >
           <select id="colorId" class="control" formControlName="colorId">
             <option [ngValue]="null" disabled>Seleccione…</option>
             @for (c of colores(); track c.id) {
@@ -139,12 +149,109 @@
             }
           </select>
         </app-campo>
+        <app-campo
+          etiqueta="Kilometraje"
+          para="kilometraje"
+          [control]="c.kilometraje"
+          requerido
+          ayuda="Al registrarlo; luego lo actualiza cada ingreso al taller."
+        >
+          <input
+            id="kilometraje"
+            type="number"
+            min="0"
+            step="1"
+            class="control"
+            formControlName="kilometraje"
+          />
+        </app-campo>
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-garantia">
+      <header
+        class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-3"
+      >
+        <div>
+          <h2 id="sec-garantia" class="font-semibold text-slate-900">Garantía</h2>
+          <p class="text-xs text-slate-500">
+            Para conservarla, los mantenimientos se hacen en el taller autorizado (concesionario).
+          </p>
+        </div>
+        @if (enGarantia() !== null) {
+          <app-estado-badge [estado]="enGarantia() ? 'En garantía' : 'Garantía vencida'" />
+        }
+      </header>
+      <div class="space-y-5 p-5">
+        <label class="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+            formControlName="conGarantia"
+          />
+          <span>
+            <span class="block text-sm font-medium text-slate-800">
+              El vehículo tiene garantía del fabricante
+            </span>
+            <span class="block text-xs text-slate-500">
+              Vence en la fecha o al llegar al kilometraje límite, lo que ocurra primero.
+            </span>
+          </span>
+        </label>
+        @if (c.conGarantia.value) {
+          <div class="grid gap-5 sm:grid-cols-3">
+            <app-campo
+              etiqueta="Vence el"
+              para="garantiaVence"
+              [control]="c.garantiaVence"
+              requerido
+            >
+              <input
+                id="garantiaVence"
+                type="date"
+                class="control"
+                formControlName="garantiaVence"
+              />
+            </app-campo>
+            <app-campo
+              etiqueta="Hasta (km)"
+              para="garantiaKilometraje"
+              [control]="c.garantiaKilometraje"
+              ayuda="Opcional."
+            >
+              <input
+                id="garantiaKilometraje"
+                type="number"
+                min="1"
+                step="1"
+                class="control"
+                formControlName="garantiaKilometraje"
+              />
+            </app-campo>
+            <app-campo
+              etiqueta="Taller autorizado"
+              para="garantiaTallerId"
+              [control]="c.garantiaTallerId"
+              ayuda="Proveedores marcados como taller autorizado."
+            >
+              <select id="garantiaTallerId" class="control" formControlName="garantiaTallerId">
+                <option [ngValue]="null">Sin indicar</option>
+                @for (t of talleres(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.nombre }}</option>
+                }
+              </select>
+            </app-campo>
+          </div>
+        }
       </div>
     </section>
 
     @if (estatus(); as e) {
       <section class="tarjeta" aria-labelledby="sec-estado">
-        <h2 id="sec-estado" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        <h2
+          id="sec-estado"
+          class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+        >
           Estatus
         </h2>
         <div class="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:gap-4">

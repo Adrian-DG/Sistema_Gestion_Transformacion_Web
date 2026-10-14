@@ -102,8 +102,8 @@ export class SolicitudTallerDetalle {
 
   // Ingreso
   protected readonly ingreso = this.fb.group({
-    mecanicoId: this.fb.control<string | null>(null, Validators.required),
-    kilometraje: this.fb.control<number | null>(null, Validators.min(0)),
+    mecanicoId: this.fb.control<string | null>(null),
+    kilometraje: this.fb.control<number | null>(null, [Validators.required, Validators.min(0)]),
   });
 
   // Pieza utilizada (y compra de lo faltante)
@@ -131,8 +131,14 @@ export class SolicitudTallerDetalle {
     diagnostico: ['', [Validators.required, Validators.maxLength(2000)]],
     trabajoRealizado: ['', [Validators.required, Validators.maxLength(2000)]],
     procedeBaja: [false],
+    // Solo en solicitudes externas: lo que cobró el taller autorizado y su factura.
+    costoServicio: this.fb.control<number | null>(null, Validators.min(0)),
+    numeroFacturaServicio: ['', Validators.maxLength(50)],
+    facturaServicio: this.fb.control<ArchivoSeleccionado | null>(null),
   });
   protected readonly errorCierre = signal<string | null>(null);
+
+  protected readonly esExterna = computed(() => this.detalle()?.solicitud.lugar === 'Externo');
 
   private readonly valoresPieza = toSignal(this.pieza.valueChanges.pipe(startWith(null)));
 
@@ -168,6 +174,24 @@ export class SolicitudTallerDetalle {
       .subscribe((detalle) => {
         this.detalle.set(detalle);
         this.noEncontrada.set(detalle === null);
+        if (!detalle) return;
+
+        // Mecánico solo en el taller interno; costo del servicio solo en el externo.
+        const externa = detalle.solicitud.lugar === 'Externo';
+        this.ingreso.controls.mecanicoId.setValidators(externa ? null : Validators.required);
+        this.ingreso.controls.mecanicoId.updateValueAndValidity();
+        this.cierre.controls.costoServicio.setValidators(
+          externa ? [Validators.required, Validators.min(0)] : Validators.min(0),
+        );
+        this.cierre.controls.costoServicio.updateValueAndValidity();
+        if (this.ingreso.controls.kilometraje.value === null) {
+          this.ingreso.controls.kilometraje.setValue(detalle.solicitud.kilometraje);
+        }
+        this.ingreso.controls.kilometraje.setValidators([
+          Validators.required,
+          Validators.min(detalle.solicitud.kilometraje),
+        ]);
+        this.ingreso.controls.kilometraje.updateValueAndValidity();
       });
 
     toObservable(this.recarga)
@@ -184,14 +208,22 @@ export class SolicitudTallerDetalle {
       return;
     }
     const v = this.ingreso.getRawValue();
-    await this.ejecutar(this.taller.ingresar(this.id(), v.mecanicoId!, v.kilometraje), (r) => {
-      this.notificaciones.exito('El vehículo ingresó al taller y quedó en mantenimiento.');
-      if (r.asignacionesAprobadas > 0) {
-        this.notificaciones.advertencia(
-          `El vehículo tiene ${r.asignacionesAprobadas} asignación(es) aprobada(s) a futuro; reprográmelas o cancélelas.`,
+    const externa = this.esExterna();
+    await this.ejecutar(
+      this.taller.ingresar(this.id(), externa ? null : v.mecanicoId, v.kilometraje!),
+      (r) => {
+        this.notificaciones.exito(
+          externa
+            ? 'El vehículo se envió al taller autorizado y quedó en mantenimiento.'
+            : 'El vehículo ingresó al taller y quedó en mantenimiento.',
         );
-      }
-    });
+        if (r.asignacionesAprobadas > 0) {
+          this.notificaciones.advertencia(
+            `El vehículo tiene ${r.asignacionesAprobadas} asignación(es) aprobada(s) a futuro; reprográmelas o cancélelas.`,
+          );
+        }
+      },
+    );
   }
 
   protected async rechazar(): Promise<void> {
@@ -373,6 +405,8 @@ export class SolicitudTallerDetalle {
     }
     const v = this.cierre.getRawValue();
     const placa = this.detalle()!.solicitud.placa;
+    const externa = this.esExterna();
+    const tipoFactura = this.tiposDocumento().find((t) => /^factura$/i.test(t.nombre))?.id;
     const confirmado = await this.dialogos.confirmar(
       v.procedeBaja
         ? {
@@ -396,7 +430,24 @@ export class SolicitudTallerDetalle {
           this.id(),
           v.diagnostico.trim(),
           v.trabajoRealizado.trim(),
-          v.procedeBaja,
+          externa ? false : v.procedeBaja,
+          externa
+            ? {
+                costoServicio: v.costoServicio!,
+                numeroFacturaServicio: v.numeroFacturaServicio.trim() || null,
+                adjuntos:
+                  v.facturaServicio && tipoFactura
+                    ? [
+                        {
+                          tipoDocumentoId: tipoFactura,
+                          nombreArchivo: v.facturaServicio.nombreArchivo,
+                          contentType: v.facturaServicio.contentType,
+                          fileBase64: v.facturaServicio.fileBase64,
+                        },
+                      ]
+                    : [],
+              }
+            : null,
         ),
       );
       this.notificaciones.exito(

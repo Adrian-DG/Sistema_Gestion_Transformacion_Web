@@ -31,6 +31,14 @@ export const nombreTipo = (codigo: string): string =>
 export const nombreEstatus = (codigo: string): string =>
   ESTATUS_SOLICITUD.find((e) => e.codigo === codigo)?.nombre ?? codigo;
 
+/** Espejo de LugarMantenimiento. */
+export const LUGARES = [
+  { valor: 1, codigo: 'Interno', nombre: 'Taller de la institución' },
+  { valor: 2, codigo: 'Externo', nombre: 'Taller autorizado (externo)' },
+] as const;
+
+export type LugarMantenimiento = (typeof LUGARES)[number]['codigo'];
+
 export interface SolicitudTaller {
   id: string;
   numero: string;
@@ -43,7 +51,7 @@ export interface SolicitudTaller {
   solicitante: string;
   solicitanteCedula: string;
   motivo: string;
-  kilometraje: number | null;
+  kilometraje: number;
   fechaSolicitud: string;
   mecanicoId: string | null;
   mecanico: string | null;
@@ -54,6 +62,26 @@ export interface SolicitudTaller {
   procedeBaja: boolean;
   motivoRechazoCancelacion: string | null;
   costoPiezas: number;
+  lugar: LugarMantenimiento;
+  tallerExternoId: string | null;
+  tallerExterno: string | null;
+  /** Lo que cobró el taller autorizado. */
+  costoServicio: number | null;
+  numeroFacturaServicio: string | null;
+  /** Piezas más servicio externo. */
+  costoTotal: number;
+}
+
+/** Kilometraje y garantía del vehículo (api/taller/vehiculos/{id}/garantia). */
+export interface GarantiaVehiculo {
+  vehiculoId: string;
+  placa: string;
+  kilometraje: number;
+  enGarantia: boolean;
+  garantiaVence: string | null;
+  garantiaKilometraje: number | null;
+  garantiaTallerId: string | null;
+  garantiaTaller: string | null;
 }
 
 export interface PiezaUtilizada {
@@ -84,6 +112,8 @@ export interface SolicitudTallerDetalle {
   piezas: PiezaUtilizada[];
   compras: CompraDirecta[];
   devoluciones: PiezaUtilizada[];
+  /** Factura u orden de servicio del taller autorizado. */
+  adjuntosServicio: AdjuntoResumen[];
 }
 
 export interface HistorialMantenimientos {
@@ -104,7 +134,9 @@ export interface NuevaSolicitudTaller {
   tipo: number;
   solicitantePersonaId: string;
   motivo: string;
-  kilometraje: number | null;
+  kilometraje: number;
+  lugar: number;
+  tallerExternoId: string | null;
 }
 
 export interface CompraPieza {
@@ -112,6 +144,12 @@ export interface CompraPieza {
   costoUnitario: number;
   numeroFactura: string | null;
   recibo: AdjuntoNuevo;
+}
+
+export interface ServicioExterno {
+  costoServicio: number;
+  numeroFacturaServicio: string | null;
+  adjuntos: AdjuntoNuevo[];
 }
 
 export interface Mecanico {
@@ -166,11 +204,14 @@ export class TallerService {
     );
   }
 
-  /** Devuelve cuántas asignaciones aprobadas a futuro tiene el vehículo. */
+  /**
+   * Devuelve cuántas asignaciones aprobadas a futuro tiene el vehículo. El mecánico solo en el
+   * taller interno.
+   */
   ingresar(
     id: string,
-    mecanicoId: string,
-    kilometraje: number | null,
+    mecanicoId: string | null,
+    kilometraje: number,
   ): Observable<{ asignacionesAprobadas: number }> {
     return this.http.post<{ asignacionesAprobadas: number }>(
       api(`taller/solicitudes/${id}/ingresar`),
@@ -192,17 +233,24 @@ export class TallerService {
     );
   }
 
+  /** En una solicitud externa, `servicio` con lo que cobró el taller autorizado. */
   finalizar(
     id: string,
     diagnostico: string,
     trabajoRealizado: string,
     procedeBaja: boolean,
+    servicio: ServicioExterno | null = null,
   ): Observable<void> {
     return this.http.post<void>(
       api(`taller/solicitudes/${id}/finalizar`),
-      { diagnostico, trabajoRealizado, procedeBaja },
+      { diagnostico, trabajoRealizado, procedeBaja, ...servicio },
       SIN_AVISO,
     );
+  }
+
+  /** Kilometraje y garantía del vehículo, para elegir el taller interno o el autorizado. */
+  garantia(vehiculoId: string): Observable<GarantiaVehiculo> {
+    return this.http.get<GarantiaVehiculo>(api(`taller/vehiculos/${vehiculoId}/garantia`));
   }
 
   rechazar(id: string, motivo: string): Observable<void> {

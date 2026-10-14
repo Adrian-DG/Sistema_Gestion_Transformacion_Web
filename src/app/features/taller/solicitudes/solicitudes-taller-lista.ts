@@ -62,7 +62,7 @@ export class SolicitudesTallerLista {
     { clave: 'numero', titulo: 'Solicitud' },
     { clave: 'vehiculo', titulo: 'Vehículo' },
     { clave: 'motivo', titulo: 'Motivo', ocultarEnMovil: true },
-    { clave: 'mecanico', titulo: 'Mecánico', ocultarEnMovil: true },
+    { clave: 'mecanico', titulo: 'Mecánico / taller', ocultarEnMovil: true },
     { clave: 'estatus', titulo: 'Estado' },
   ];
 

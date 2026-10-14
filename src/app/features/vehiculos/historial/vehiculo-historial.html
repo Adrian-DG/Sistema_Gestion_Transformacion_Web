@@ -173,7 +173,8 @@
       </div>
     } @else {
       <p class="mb-3 text-sm text-slate-600">
-        {{ historial()!.solicitudes.length }} solicitud(es) de taller · Costo total en piezas:
+        {{ historial()!.solicitudes.length }} solicitud(es) de taller · Costo total (piezas y
+        servicios externos):
         <strong>{{ moneda(costoTotal()) }}</strong>
       </p>
       <ol class="space-y-3">
@@ -194,12 +195,12 @@
                     @if (s.fechaSalida) {
                       → {{ s.fechaSalida | date: 'dd/MM/y' }}
                     }
-                    @if (s.mecanico) {
+                    @if (s.lugar === 'Externo') {
+                      · Taller autorizado: {{ s.tallerExterno }}
+                    } @else if (s.mecanico) {
                       · Mecánico: {{ s.mecanico }}
                     }
-                    @if (s.kilometraje !== null) {
-                      · {{ s.kilometraje | number }} km
-                    }
+                    · {{ s.kilometraje | number }} km
                   </p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -239,6 +240,14 @@
                 </ul>
                 <p class="mt-1 text-right text-xs font-medium text-slate-800">
                   Piezas: {{ moneda(s.costoPiezas) }}
+                </p>
+              }
+              @if (s.costoServicio !== null) {
+                <p
+                  class="mt-2 border-t border-slate-100 pt-2 text-right text-xs font-medium text-slate-800"
+                >
+                  Servicio externo: {{ moneda(s.costoServicio) }}
+                  {{ s.numeroFacturaServicio ? '· Factura ' + s.numeroFacturaServicio : '' }}
                 </p>
               }
             </li>

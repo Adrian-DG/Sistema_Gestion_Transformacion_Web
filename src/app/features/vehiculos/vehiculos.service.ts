@@ -29,6 +29,8 @@ export interface VehiculoResumen {
   color: string;
   tipo: string;
   estatus: EstatusVehiculo;
+  kilometraje: number;
+  enGarantia: boolean;
 }
 
 export interface VehiculoDetalle {
@@ -47,6 +49,14 @@ export interface VehiculoDetalle {
   colorId: string;
   color: string;
   estatus: EstatusVehiculo;
+  kilometraje: number;
+  /** yyyy-MM-dd */
+  garantiaVence: string | null;
+  garantiaKilometraje: number | null;
+  garantiaTallerId: string | null;
+  garantiaTaller: string | null;
+  /** Garantía vigente hoy por fecha y kilometraje. */
+  enGarantia: boolean;
 }
 
 export interface DatosVehiculo {
@@ -59,6 +69,10 @@ export interface DatosVehiculo {
   modeloId: string;
   tipoId: string;
   colorId: string;
+  kilometraje: number;
+  garantiaVence: string | null;
+  garantiaKilometraje: number | null;
+  garantiaTallerId: string | null;
 }
 
 export interface FiltroVehiculos {

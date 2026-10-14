@@ -4,6 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { catchError, filter, firstValueFrom, of, startWith, switchMap } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
+import { InventarioService } from '../../inventario/inventario.service';
 import { CatalogosService } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
@@ -31,7 +32,9 @@ const CAMPO_POR_CODIGO: [RegExp, string][] = [
 
 /**
  * Alta (sin `id`) y edición (con `id`) de vehículos. Al guardar vuelve al listado. En edición se
- * ve su estatus, que no se edita aquí; no se eliminan.
+ * ve su estatus, que no se edita aquí; no se eliminan. Un vehículo nuevo se registra con su
+ * kilometraje y su garantía: hasta qué fecha y kilometraje, y el taller autorizado donde se le dan
+ * los mantenimientos para conservarla.
  */
 @Component({
   selector: 'app-vehiculo-formulario',
@@ -42,6 +45,7 @@ const CAMPO_POR_CODIGO: [RegExp, string][] = [
 export class VehiculoFormulario {
   private readonly vehiculos = inject(VehiculosService);
   private readonly catalogos = inject(CatalogosService);
+  private readonly inventario = inject(InventarioService);
   private readonly notificaciones = inject(NotificacionesService);
   private readonly router = inject(Router);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -65,7 +69,21 @@ export class VehiculoFormulario {
     modeloId: this.fb.control<string | null>(null, Validators.required),
     tipoId: this.fb.control<string | null>(null, Validators.required),
     colorId: this.fb.control<string | null>(null, Validators.required),
+    kilometraje: this.fb.control<number | null>(0, [Validators.required, Validators.min(0)]),
+    conGarantia: [false],
+    garantiaVence: [''],
+    garantiaKilometraje: this.fb.control<number | null>(null, Validators.min(1)),
+    garantiaTallerId: this.fb.control<string | null>(null),
   });
+  protected readonly c = this.formulario.controls;
+
+  /** Talleres autorizados (concesionarios) para la garantía. */
+  protected readonly talleres = toSignal(
+    this.inventario.catalogoProveedores(true).pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+  /** Estado de la garantía guardada (null si no tiene). */
+  protected readonly enGarantia = signal<boolean | null>(null);
 
   protected readonly marcas = toSignal(this.catalogos.marcas().pipe(catchError(() => of([]))), {
     initialValue: [],
@@ -99,6 +117,12 @@ export class VehiculoFormulario {
   protected readonly nombresEstatus = NOMBRES_ESTATUS_VEHICULO;
 
   constructor() {
+    // La fecha de vencimiento es obligatoria solo si se registra la garantía.
+    this.c.conGarantia.valueChanges.pipe(takeUntilDestroyed()).subscribe((con) => {
+      this.c.garantiaVence.setValidators(con ? Validators.required : null);
+      this.c.garantiaVence.updateValueAndValidity();
+    });
+
     // Al cambiar de marca, el modelo elegido deja de ser válido.
     this.formulario.controls.marcaId.valueChanges
       .pipe(takeUntilDestroyed())
@@ -127,6 +151,7 @@ export class VehiculoFormulario {
 
         this.placaActual.set(vehiculo.placa);
         this.estatus.set(vehiculo.estatus);
+        this.enGarantia.set(vehiculo.garantiaVence ? vehiculo.enGarantia : null);
         this.formulario.patchValue({
           placa: vehiculo.placa,
           ficha: vehiculo.ficha ?? '',
@@ -137,6 +162,11 @@ export class VehiculoFormulario {
           modeloId: vehiculo.modeloId,
           tipoId: vehiculo.tipoId,
           colorId: vehiculo.colorId,
+          kilometraje: vehiculo.kilometraje,
+          conGarantia: !!vehiculo.garantiaVence,
+          garantiaVence: vehiculo.garantiaVence ?? '',
+          garantiaKilometraje: vehiculo.garantiaKilometraje,
+          garantiaTallerId: vehiculo.garantiaTallerId,
         });
       });
   }
@@ -160,6 +190,10 @@ export class VehiculoFormulario {
       modeloId: v.modeloId!,
       tipoId: v.tipoId!,
       colorId: v.colorId!,
+      kilometraje: v.kilometraje!,
+      garantiaVence: v.conGarantia ? v.garantiaVence : null,
+      garantiaKilometraje: v.conGarantia ? v.garantiaKilometraje : null,
+      garantiaTallerId: v.conGarantia ? v.garantiaTallerId : null,
     };
 
     this.guardando.set(true);

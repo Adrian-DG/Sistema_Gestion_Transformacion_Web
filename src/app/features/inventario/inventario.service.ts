@@ -66,6 +66,8 @@ export interface Proveedor {
   correo: string | null;
   direccion: string | null;
   contacto: string | null;
+  /** Taller autorizado (concesionario) para mantenimientos externos. */
+  esTallerAutorizado: boolean;
   activo: boolean;
 }
 
@@ -168,9 +170,11 @@ export class InventarioService {
     return this.http.get<Paginado<Proveedor>>(api('inventario-piezas/proveedores'), { params });
   }
 
-  /** Proveedores activos. */
-  catalogoProveedores(): Observable<ElementoCatalogo[]> {
-    return this.http.get<ElementoCatalogo[]>(api('inventario-piezas/proveedores/catalogo'));
+  /** Proveedores activos; con `soloTalleres`, los talleres autorizados. */
+  catalogoProveedores(soloTalleres = false): Observable<ElementoCatalogo[]> {
+    return this.http.get<ElementoCatalogo[]>(api('inventario-piezas/proveedores/catalogo'), {
+      params: soloTalleres ? new HttpParams().set('soloTalleres', true) : undefined,
+    });
   }
 
   obtenerProveedor(id: string): Observable<Proveedor> {

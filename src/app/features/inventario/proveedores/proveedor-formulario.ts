@@ -71,6 +71,20 @@ import { DatosProveedor, InventarioService } from '../inventario.service';
           >
             <input id="direccion" class="control" formControlName="direccion" />
           </app-campo>
+          <label class="flex cursor-pointer items-start gap-3 sm:col-span-2">
+            <input
+              type="checkbox"
+              class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+              formControlName="esTallerAutorizado"
+            />
+            <span>
+              <span class="block text-sm font-medium text-slate-800">Taller autorizado</span>
+              <span class="block text-xs text-slate-500">
+                Concesionario o taller donde se pueden hacer mantenimientos externos, por ejemplo
+                para conservar la garantía de un vehículo nuevo.
+              </span>
+            </span>
+          </label>
           @if (esEdicion()) {
             <label class="flex cursor-pointer items-start gap-3 sm:col-span-2">
               <input
@@ -118,6 +132,7 @@ export class ProveedorFormulario {
     correo: ['', [Validators.email, Validators.maxLength(150)]],
     direccion: ['', Validators.maxLength(300)],
     contacto: ['', Validators.maxLength(150)],
+    esTallerAutorizado: [false],
     activo: [true],
   });
   protected readonly c = this.formulario.controls;
@@ -144,6 +159,7 @@ export class ProveedorFormulario {
           correo: p.correo ?? '',
           direccion: p.direccion ?? '',
           contacto: p.contacto ?? '',
+          esTallerAutorizado: p.esTallerAutorizado,
           activo: p.activo,
         });
       });
@@ -166,6 +182,7 @@ export class ProveedorFormulario {
       correo: opcional(v.correo),
       direccion: opcional(v.direccion),
       contacto: opcional(v.contacto),
+      esTallerAutorizado: v.esTallerAutorizado,
     };
 
     this.guardando.set(true);

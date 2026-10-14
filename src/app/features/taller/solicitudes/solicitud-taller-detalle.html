@@ -64,14 +64,17 @@
         <dd class="font-mono text-xs text-slate-500">{{ s.solicitanteCedula }}</dd>
       </div>
       <div>
-        <dt class="text-xs text-slate-500">Mecánico</dt>
-        <dd class="mt-1 text-slate-900">{{ s.mecanico ?? '—' }}</dd>
+        @if (s.lugar === 'Externo') {
+          <dt class="text-xs text-slate-500">Taller autorizado (externo)</dt>
+          <dd class="mt-1 text-slate-900">{{ s.tallerExterno }}</dd>
+        } @else {
+          <dt class="text-xs text-slate-500">Mecánico (taller interno)</dt>
+          <dd class="mt-1 text-slate-900">{{ s.mecanico ?? '—' }}</dd>
+        }
       </div>
       <div>
         <dt class="text-xs text-slate-500">Kilometraje</dt>
-        <dd class="mt-1 text-slate-900">
-          {{ s.kilometraje !== null ? (s.kilometraje | number) + ' km' : '—' }}
-        </dd>
+        <dd class="mt-1 text-slate-900">{{ s.kilometraje | number }} km</dd>
       </div>
       <div>
         <dt class="text-xs text-slate-500">Solicitada</dt>
@@ -86,8 +89,25 @@
         <dd class="mt-1 text-slate-900">{{ (s.fechaSalida | date: 'dd/MM/y h:mm a') ?? '—' }}</dd>
       </div>
       <div>
-        <dt class="text-xs text-slate-500">Costo de piezas</dt>
-        <dd class="mt-1 font-semibold text-slate-900">{{ moneda(s.costoPiezas) }}</dd>
+        @if (s.lugar === 'Externo') {
+          <dt class="text-xs text-slate-500">Costo del servicio</dt>
+          <dd class="mt-1 font-semibold text-slate-900">
+            {{ s.costoServicio !== null ? moneda(s.costoServicio) : '—' }}
+          </dd>
+          @if (s.numeroFacturaServicio) {
+            <dd class="font-mono text-xs text-slate-500">{{ s.numeroFacturaServicio }}</dd>
+          }
+          @for (a of d.adjuntosServicio; track a.id) {
+            <dd>
+              <button type="button" class="btn btn-texto btn-sm !px-0" (click)="verRecibo(a)">
+                <app-icono nombre="descargar" [tamano]="16" /> Factura
+              </button>
+            </dd>
+          }
+        } @else {
+          <dt class="text-xs text-slate-500">Costo de piezas</dt>
+          <dd class="mt-1 font-semibold text-slate-900">{{ moneda(s.costoPiezas) }}</dd>
+        }
       </div>
       <div class="sm:col-span-2 lg:col-span-4">
         <dt class="text-xs text-slate-500">Motivo</dt>
@@ -116,10 +136,12 @@
   @if (s.estatus === 'Pendiente') {
     <section class="tarjeta mb-6" aria-labelledby="sec-ingreso">
       <header class="border-b border-slate-200 px-5 py-3">
-        <h2 id="sec-ingreso" class="font-semibold text-slate-900">Ingreso al taller</h2>
+        <h2 id="sec-ingreso" class="font-semibold text-slate-900">
+          {{ esExterna() ? 'Envío al taller autorizado' : 'Ingreso al taller' }}
+        </h2>
         <p class="text-xs text-slate-500">
-          Al ingresar, el vehículo pasa a En mantenimiento y no se puede asignar. Si está en una
-          misión, primero registre su retorno.
+          El vehículo pasa a En mantenimiento y no se puede asignar. Si está en una misión, primero
+          registre su retorno. El kilometraje no puede ser menor que el de la solicitud.
         </p>
       </header>
       <form
@@ -128,28 +150,37 @@
         novalidate
         class="grid gap-5 p-5 sm:grid-cols-[1fr_12rem_auto] sm:items-end"
       >
-        <app-campo
-          etiqueta="Mecánico asignado"
-          para="mecanicoId"
-          [control]="ingreso.controls.mecanicoId"
-          requerido
-        >
-          <select id="mecanicoId" class="control" formControlName="mecanicoId">
-            <option [ngValue]="null" disabled>Seleccione…</option>
-            @for (m of mecanicos(); track m.id) {
-              <option [ngValue]="m.id">{{ m.nombre }}</option>
-            }
-          </select>
-        </app-campo>
+        @if (esExterna()) {
+          <p class="text-sm text-slate-700">
+            Lo atiende <strong>{{ s.tallerExterno }}</strong
+            >; no se asigna mecánico de la institución.
+          </p>
+        } @else {
+          <app-campo
+            etiqueta="Mecánico asignado"
+            para="mecanicoId"
+            [control]="ingreso.controls.mecanicoId"
+            requerido
+          >
+            <select id="mecanicoId" class="control" formControlName="mecanicoId">
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              @for (m of mecanicos(); track m.id) {
+                <option [ngValue]="m.id">{{ m.nombre }}</option>
+              }
+            </select>
+          </app-campo>
+        }
         <app-campo
           etiqueta="Kilometraje al ingreso"
           para="kmIngreso"
           [control]="ingreso.controls.kilometraje"
+          requerido
         >
           <input
             id="kmIngreso"
             type="number"
-            min="0"
+            [min]="s.kilometraje"
+            step="1"
             class="control"
             formControlName="kilometraje"
           />
@@ -158,10 +189,10 @@
           @if (procesando()) {
             <app-cargando class="text-current" />
           }
-          Ingresar al taller
+          {{ esExterna() ? 'Enviar al taller autorizado' : 'Ingresar al taller' }}
         </button>
       </form>
-      @if (mecanicos().length === 0) {
+      @if (!esExterna() && mecanicos().length === 0) {
         <p class="px-5 pb-4 text-xs text-amber-700">
           No hay mecánicos activos.
           <a routerLink="/mecanicos/nuevo" class="underline">Registre uno</a>.
@@ -171,7 +202,7 @@
   }
 
   <!-- Piezas utilizadas -->
-  @if (s.estatus !== 'Pendiente' && s.estatus !== 'Rechazada') {
+  @if (s.lugar === 'Interno' && s.estatus !== 'Pendiente' && s.estatus !== 'Rechazada') {
     <section class="tarjeta mb-6 overflow-hidden" aria-labelledby="sec-piezas">
       <header class="border-b border-slate-200 px-5 py-3">
         <h2 id="sec-piezas" class="font-semibold text-slate-900">Piezas utilizadas</h2>
@@ -485,7 +516,9 @@
   @if (s.estatus === 'EnTaller') {
     <section class="tarjeta" aria-labelledby="sec-cierre">
       <header class="border-b border-slate-200 px-5 py-3">
-        <h2 id="sec-cierre" class="font-semibold text-slate-900">Cierre de la orden</h2>
+        <h2 id="sec-cierre" class="font-semibold text-slate-900">
+          {{ esExterna() ? 'Regreso del taller autorizado' : 'Cierre de la orden' }}
+        </h2>
         <p class="text-xs text-slate-500">
           El vehículo vuelve a estar disponible, salvo que el mecánico dictamine su baja.
         </p>
@@ -528,27 +561,65 @@
             ></textarea>
           </app-campo>
         </div>
-        <label
-          class="flex cursor-pointer items-start gap-3 rounded-md border p-3"
-          [class]="
-            cierre.controls.procedeBaja.value ? 'border-red-300 bg-red-50' : 'border-slate-200'
-          "
-        >
-          <input
-            type="checkbox"
-            class="mt-0.5 size-4 rounded border-slate-300 accent-red-600"
-            formControlName="procedeBaja"
-          />
-          <span>
-            <span class="block text-sm font-medium text-slate-800"
-              >El mecánico dictamina la baja del vehículo</span
+        @if (esExterna()) {
+          <div class="grid gap-5 sm:grid-cols-3">
+            <app-campo
+              etiqueta="Costo del servicio (RD$)"
+              para="costoServicio"
+              [control]="cierre.controls.costoServicio"
+              requerido
             >
-            <span class="block text-xs text-slate-500">
-              El vehículo pasará a INACTIVO y no se podrá asignar. Solo se reactiva por excepción,
-              con permiso.
+              <input
+                id="costoServicio"
+                type="number"
+                min="0"
+                step="0.01"
+                class="control"
+                formControlName="costoServicio"
+              />
+            </app-campo>
+            <app-campo
+              etiqueta="Número de factura"
+              para="numeroFacturaServicio"
+              [control]="cierre.controls.numeroFacturaServicio"
+            >
+              <input
+                id="numeroFacturaServicio"
+                class="control font-mono"
+                formControlName="numeroFacturaServicio"
+              />
+            </app-campo>
+            <app-campo
+              etiqueta="Factura u orden de servicio"
+              para="facturaServicio"
+              [control]="cierre.controls.facturaServicio"
+            >
+              <app-selector-archivo idControl="facturaServicio" formControlName="facturaServicio" />
+            </app-campo>
+          </div>
+        } @else {
+          <label
+            class="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+            [class]="
+              cierre.controls.procedeBaja.value ? 'border-red-300 bg-red-50' : 'border-slate-200'
+            "
+          >
+            <input
+              type="checkbox"
+              class="mt-0.5 size-4 rounded border-slate-300 accent-red-600"
+              formControlName="procedeBaja"
+            />
+            <span>
+              <span class="block text-sm font-medium text-slate-800"
+                >El mecánico dictamina la baja del vehículo</span
+              >
+              <span class="block text-xs text-slate-500">
+                El vehículo pasará a INACTIVO y no se podrá asignar. Solo se reactiva por excepción,
+                con permiso.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        }
         <div class="flex justify-end">
           <button
             type="submit"

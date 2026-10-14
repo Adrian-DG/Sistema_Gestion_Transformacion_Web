@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +23,7 @@ const ESPERA_BUSQUEDA_MS = 350;
 /** Listado de la flota. Los filtros viven en la URL (?q=&pagina=&tamano=). */
 @Component({
   selector: 'app-vehiculos-lista',
-  imports: [RouterLink, EncabezadoPagina, Tabla, Celda, Paginador, EstadoBadge, Icono],
+  imports: [DecimalPipe, RouterLink, EncabezadoPagina, Tabla, Celda, Paginador, EstadoBadge, Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehiculos-lista.html',
 })

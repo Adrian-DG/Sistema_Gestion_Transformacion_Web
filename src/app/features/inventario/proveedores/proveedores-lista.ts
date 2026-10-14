@@ -79,7 +79,12 @@ const ESPERA_BUSQUEDA_MS = 350;
           </span>
         </ng-template>
         <ng-template appCelda="estado" let-p>
-          <app-estado-badge [estado]="p.activo ? 'Activo' : 'Inactivo'" />
+          <div class="flex flex-wrap gap-1">
+            <app-estado-badge [estado]="p.activo ? 'Activo' : 'Inactivo'" />
+            @if (p.esTallerAutorizado) {
+              <app-estado-badge estado="Taller autorizado" />
+            }
+          </div>
         </ng-template>
         <ng-template appCelda="acciones" let-p>
           <a [routerLink]="[p.id, 'editar']" class="btn btn-texto btn-sm">Editar</a>

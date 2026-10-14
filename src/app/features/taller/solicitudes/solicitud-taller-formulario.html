@@ -35,16 +35,53 @@
           }
         </select>
       </app-campo>
-      <app-campo etiqueta="Kilometraje" para="kilometraje" [control]="c.kilometraje">
+      <app-campo
+        etiqueta="Kilometraje actual"
+        para="kilometraje"
+        [control]="c.kilometraje"
+        requerido
+        [ayuda]="
+          garantia()
+            ? 'Último registrado: ' +
+              (garantia()!.kilometraje | number) +
+              ' km. No puede ser menor.'
+            : 'Se guarda en cada mantenimiento.'
+        "
+      >
         <input
           id="kilometraje"
           type="number"
-          min="0"
+          [min]="garantia()?.kilometraje ?? 0"
           step="1"
           class="control"
           formControlName="kilometraje"
         />
       </app-campo>
+
+      @if (garantia(); as g) {
+        <div
+          class="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm sm:col-span-2"
+          [class]="
+            g.enGarantia ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+          "
+        >
+          @if (g.enGarantia) {
+            <app-estado-badge estado="En garantía" />
+            <span class="text-slate-700">
+              {{ garantiaTexto(g) }}.
+              @if (g.garantiaTaller) {
+                Taller autorizado: <strong>{{ g.garantiaTaller }}</strong
+                >.
+              }
+            </span>
+          } @else if (g.garantiaVence) {
+            <app-estado-badge estado="Garantía vencida" />
+            <span class="text-slate-600">Se puede atender en el taller de la institución.</span>
+          } @else {
+            <span class="text-slate-600">El vehículo no tiene garantía registrada.</span>
+          }
+        </div>
+      }
 
       <fieldset class="sm:col-span-2">
         <legend class="mb-2 text-sm font-medium text-slate-700">Tipo</legend>
@@ -68,9 +105,67 @@
             </label>
           }
         </div>
-        @if (c.tipo.value === 3) {
+        @if (c.tipo.value === EVALUACION_BAJA) {
           <p class="mt-2 text-xs text-slate-500">
-            El mecánico revisará el vehículo y dictaminará si se da de baja (pasa a inactivo).
+            Un mecánico del taller de la institución revisará el vehículo y dictaminará si se da de
+            baja (pasa a inactivo).
+          </p>
+        }
+      </fieldset>
+
+      <fieldset class="sm:col-span-2">
+        <legend class="mb-2 text-sm font-medium text-slate-700">Dónde se atiende</legend>
+        <div class="flex flex-wrap gap-2">
+          @for (l of lugares; track l.valor) {
+            <label
+              class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+              [class]="
+                (c.lugar.value === l.valor
+                  ? 'border-primario bg-primario/5 text-slate-900'
+                  : 'border-slate-300 text-slate-700 hover:bg-slate-50') +
+                (l.valor === EXTERNO && c.tipo.value === EVALUACION_BAJA
+                  ? ' cursor-not-allowed opacity-50'
+                  : ' cursor-pointer')
+              "
+            >
+              <input
+                type="radio"
+                class="accent-primario"
+                formControlName="lugar"
+                [value]="l.valor"
+                [attr.disabled]="
+                  l.valor === EXTERNO && c.tipo.value === EVALUACION_BAJA ? '' : null
+                "
+              />
+              {{ l.nombre }}
+            </label>
+          }
+        </div>
+        @if (c.lugar.value === EXTERNO) {
+          <app-campo
+            etiqueta="Taller autorizado"
+            para="tallerExternoId"
+            [control]="c.tallerExternoId"
+            requerido
+            class="mt-4 block sm:max-w-md"
+            ayuda="Proveedores marcados como taller autorizado (concesionarios)."
+          >
+            <select id="tallerExternoId" class="control" formControlName="tallerExternoId">
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              @for (t of talleres(); track t.id) {
+                <option [ngValue]="t.id">{{ t.nombre }}</option>
+              }
+            </select>
+          </app-campo>
+        }
+        @if (riesgoGarantia()) {
+          <p
+            class="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+            role="alert"
+          >
+            <app-icono nombre="advertencia" [tamano]="18" class="mt-0.5" />
+            El vehículo está en garantía: un mantenimiento en el taller de la institución puede
+            hacer que se pierda. Para conservarla, atiéndalo en el taller autorizado.
           </p>
         }
       </fieldset>

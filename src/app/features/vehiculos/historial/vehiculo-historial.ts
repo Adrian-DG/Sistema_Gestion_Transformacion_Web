@@ -138,7 +138,7 @@ export class VehiculoHistorial {
   });
 
   protected readonly costoTotal = computed(() =>
-    (this.historial()?.solicitudes ?? []).reduce((t, s) => t + s.solicitud.costoPiezas, 0),
+    (this.historial()?.solicitudes ?? []).reduce((t, s) => t + s.solicitud.costoTotal, 0),
   );
 
   private readonly filtro = computed(() => ({
