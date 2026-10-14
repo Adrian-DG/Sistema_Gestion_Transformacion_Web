@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, combineLatest, firstValueFrom, of, switchMap, tap } from 'rxjs';
+import { catchError, firstValueFrom, of, switchMap, tap } from 'rxjs';
 import { ApiError, esApiError } from '../../../core/api/api';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Permiso } from '../../../core/auth/permisos';
@@ -22,20 +22,13 @@ import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezad
 import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { EstadoVacio } from '../../../shared/ui/estado-vacio/estado-vacio';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { SelectorPermisos } from '../selector-permisos/selector-permisos';
-import { PermisoDisponible, UsuarioDetalle, UsuariosService } from '../usuarios.service';
+import { nombrePermiso } from '../selector-permisos/selector-permisos';
+import { UsuarioDetalle, UsuariosService } from '../usuarios.service';
 
+/** Consulta del usuario; sus datos y permisos se modifican en la pantalla de edición. */
 @Component({
   selector: 'app-usuario-detalle',
-  imports: [
-    RouterLink,
-    EncabezadoPagina,
-    EstadoBadge,
-    EstadoVacio,
-    Cargando,
-    Icono,
-    SelectorPermisos,
-  ],
+  imports: [RouterLink, EncabezadoPagina, EstadoBadge, EstadoVacio, Cargando, Icono],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './usuario-detalle.html',
 })
@@ -50,13 +43,23 @@ export class UsuarioDetalleComponent {
   readonly id = input.required<string>();
 
   protected readonly usuario = signal<UsuarioDetalle | null>(null);
-  protected readonly disponibles = signal<PermisoDisponible[]>([]);
   protected readonly error = signal<ApiError | null>(null);
   protected readonly cargando = signal(true);
-
-  protected readonly permisos = signal<string[]>([]);
-  protected readonly guardandoPermisos = signal(false);
   protected readonly cambiandoEstado = signal(false);
+
+  /** Administrador primero; los demás por nombre. */
+  protected readonly permisos = computed(() =>
+    [...(this.usuario()?.roles ?? [])]
+      .map((p) => ({ codigo: p, nombre: nombrePermiso(p) }))
+      .sort((a, b) =>
+        a.codigo === Permiso.Administrador
+          ? -1
+          : b.codigo === Permiso.Administrador
+            ? 1
+            : a.nombre.localeCompare(b.nombre),
+      ),
+  );
+  protected readonly administrador: string = Permiso.Administrador;
 
   protected readonly datos = computed(() => {
     const u = this.usuario();
@@ -80,19 +83,6 @@ export class UsuarioDetalleComponent {
     () => this.usuario()?.id === this.auth.usuario()?.id,
   );
 
-  /** Nadie puede quitarse a sí mismo el permiso de Administrador (lo exige también la API). */
-  protected readonly bloqueados = computed(() =>
-    this.esUsuarioActual() && this.usuario()?.roles.includes(Permiso.Administrador)
-      ? [Permiso.Administrador as string]
-      : [],
-  );
-
-  protected readonly permisosModificados = computed(() => {
-    const originales = this.usuario()?.roles ?? [];
-    const actuales = this.permisos();
-    return originales.length !== actuales.length || originales.some((p) => !actuales.includes(p));
-  });
-
   private readonly recargar = signal(0);
 
   constructor() {
@@ -100,7 +90,7 @@ export class UsuarioDetalleComponent {
       .pipe(
         tap(() => this.cargando.set(true)),
         switchMap(({ id }) =>
-          combineLatest([this.usuarios.obtener(id), this.usuarios.permisos()]).pipe(
+          this.usuarios.obtener(id).pipe(
             catchError((e: unknown) => {
               this.error.set(esApiError(e) ? e : null);
               return of(null);
@@ -109,48 +99,13 @@ export class UsuarioDetalleComponent {
         ),
         takeUntilDestroyed(),
       )
-      .subscribe((resultado) => {
-        if (resultado) {
-          const [usuario, disponibles] = resultado;
+      .subscribe((usuario) => {
+        if (usuario) {
           this.usuario.set(usuario);
-          this.disponibles.set(disponibles);
-          this.permisos.set([...usuario.roles]);
           this.error.set(null);
         }
         this.cargando.set(false);
       });
-  }
-
-  protected descartarPermisos(): void {
-    this.permisos.set([...(this.usuario()?.roles ?? [])]);
-  }
-
-  protected async guardarPermisos(): Promise<void> {
-    const usuario = this.usuario();
-    if (!usuario) return;
-
-    if (this.permisos().length === 0) {
-      const confirmado = await this.dialogos.confirmar({
-        titulo: 'Quitar todos los permisos',
-        mensaje: `${usuario.nombre} ${usuario.apellido} podrá iniciar sesión, pero no tendrá acceso a ningún módulo.`,
-        textoConfirmar: 'Quitar permisos',
-        tipo: 'peligro',
-      });
-      if (!confirmado) return;
-    }
-
-    this.guardandoPermisos.set(true);
-    try {
-      await firstValueFrom(this.usuarios.asignarPermisos(usuario.id, this.permisos()));
-      this.notificaciones.exito(
-        'Permisos actualizados. Se aplicarán cuando el usuario vuelva a iniciar sesión.',
-      );
-      this.recargar.update((n) => n + 1);
-    } catch (e) {
-      if (!esApiError(e)) throw e;
-    } finally {
-      this.guardandoPermisos.set(false);
-    }
   }
 
   protected async cambiarEstado(): Promise<void> {

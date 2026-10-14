@@ -8,7 +8,7 @@ export const NOMBRES_PERMISO: Record<string, string> = {
   [Permiso.GestionAsignaciones]: 'Asignaciones',
   [Permiso.GestionPolizas]: 'Pólizas',
   [Permiso.GestionCombustible]: 'Combustible',
-  [Permiso.GestionOrganizacion]: 'Organización',
+  [Permiso.GestionPersonas]: 'Personas',
   [Permiso.GestionUsuarios]: 'Usuarios',
 };
 

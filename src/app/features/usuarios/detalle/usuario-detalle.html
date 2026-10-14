@@ -14,7 +14,7 @@
     [descripcion]="u.userName"
   >
     <a [routerLink]="['editar']" class="btn btn-contorno">
-      <app-icono nombre="editar" [tamano]="18" /> Editar datos
+      <app-icono nombre="editar" [tamano]="18" /> Editar usuario y permisos
     </a>
     @if (!esUsuarioActual()) {
       <button
@@ -61,39 +61,28 @@
       <header class="border-b border-slate-200 px-5 py-3">
         <h2 id="titulo-permisos" class="font-semibold text-slate-900">Permisos</h2>
         <p class="text-xs text-slate-500">
-          Definen los módulos a los que tiene acceso. Los cambios se aplican en su próximo inicio de
-          sesión.
+          Definen los módulos a los que tiene acceso. Se modifican desde “Editar usuario y permisos”.
         </p>
       </header>
       <div class="p-5">
-        <app-selector-permisos
-          [disponibles]="disponibles()"
-          [(seleccion)]="permisos"
-          [bloqueados]="bloqueados()"
-          motivoBloqueo="No puede quitarse a sí mismo el permiso de Administrador."
-          [deshabilitado]="guardandoPermisos()"
-        />
-        <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            class="btn btn-contorno"
-            [disabled]="!permisosModificados() || guardandoPermisos()"
-            (click)="descartarPermisos()"
-          >
-            Descartar cambios
-          </button>
-          <button
-            type="button"
-            class="btn btn-primario"
-            [disabled]="!permisosModificados() || guardandoPermisos()"
-            (click)="guardarPermisos()"
-          >
-            @if (guardandoPermisos()) {
-              <app-cargando class="text-current" />
+        @if (permisos().length) {
+          <ul class="flex flex-wrap gap-2">
+            @for (permiso of permisos(); track permiso.codigo) {
+              <li
+                class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-800"
+              >
+                {{ permiso.nombre }}
+                @if (permiso.codigo === administrador) {
+                  <span class="ml-1 text-xs text-secundario">· acceso total</span>
+                }
+              </li>
             }
-            Guardar permisos
-          </button>
-        </div>
+          </ul>
+        } @else {
+          <p class="text-sm text-slate-500">
+            Sin permisos: puede iniciar sesión, pero no tiene acceso a ningún módulo.
+          </p>
+        }
       </div>
     </section>
   </div>

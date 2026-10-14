@@ -11,7 +11,10 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { catchError, filter, firstValueFrom, of, startWith, switchMap } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
+import { AuthService } from '../../../core/auth/auth.service';
+import { Permiso } from '../../../core/auth/permisos';
 import { CatalogosService } from '../../../core/catalogos/catalogos.service';
+import { DialogosService } from '../../../core/dialogos/dialogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import {
   INSTITUCIONES,
@@ -66,7 +69,10 @@ const CAMPO_POR_CODIGO: [RegExp, string][] = [
   [/Rango/i, 'rangoId'],
 ];
 
-/** Alta (sin `id`) y edición (con `id`) de usuarios. */
+/**
+ * Alta (sin `id`) y edición (con `id`) de usuarios, con sus datos y permisos en la misma pantalla.
+ * Al guardar una edición se vuelve al listado.
+ */
 @Component({
   selector: 'app-usuario-formulario',
   imports: [
@@ -85,6 +91,8 @@ export class UsuarioFormulario {
   private readonly usuarios = inject(UsuariosService);
   private readonly router = inject(Router);
   private readonly notificaciones = inject(NotificacionesService);
+  private readonly dialogos = inject(DialogosService);
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(NonNullableFormBuilder);
 
   /** Parámetro de la ruta; ausente al crear. */
@@ -112,6 +120,23 @@ export class UsuarioFormulario {
   });
 
   protected readonly permisos = signal<string[]>([]);
+  /** Permisos del usuario al cargarlo (en edición), para saber si cambiaron. */
+  private readonly permisosOriginales = signal<string[]>([]);
+
+  /** Nadie puede quitarse a sí mismo el permiso de Administrador (lo exige también la API). */
+  protected readonly bloqueados = computed(() =>
+    this.id() === this.auth.usuario()?.id &&
+    this.permisosOriginales().includes(Permiso.Administrador)
+      ? [Permiso.Administrador as string]
+      : [],
+  );
+
+  private readonly permisosModificados = computed(() => {
+    const originales = this.permisosOriginales();
+    const actuales = this.permisos();
+    return originales.length !== actuales.length || originales.some((p) => !actuales.includes(p));
+  });
+
   protected readonly disponibles = toSignal(
     this.usuarios.permisos().pipe(catchError(() => of([]))),
     { initialValue: [] },
@@ -171,6 +196,8 @@ export class UsuarioFormulario {
         this.formulario.controls.password.disable();
         this.formulario.controls.confirmacion.disable();
         this.nombreActual.set(`${usuario.nombre} ${usuario.apellido}`);
+        this.permisosOriginales.set([...usuario.roles]);
+        this.permisos.set([...usuario.roles]);
         this.formulario.patchValue({
           identificacion: usuario.identificacion,
           nombre: usuario.nombre,
@@ -206,22 +233,69 @@ export class UsuarioFormulario {
       telefono: valores.telefono.trim() || null,
     };
 
+    const id = this.id();
+    if (id) {
+      await this.actualizar(id, datos);
+      return;
+    }
+
     this.guardando.set(true);
     try {
-      const id = this.id();
-      if (id) {
-        await firstValueFrom(this.usuarios.actualizar(id, datos));
-        this.notificaciones.exito('Datos del usuario actualizados.');
-        await this.router.navigate(['/usuarios', id]);
-      } else {
-        const nuevoId = await firstValueFrom(
-          this.usuarios.crear({ ...datos, password: valores.password, roles: this.permisos() }),
-        );
-        this.notificaciones.exito('Usuario creado.');
-        await this.router.navigate(['/usuarios', nuevoId]);
-      }
+      const nuevoId = await firstValueFrom(
+        this.usuarios.crear({ ...datos, password: valores.password, roles: this.permisos() }),
+      );
+      this.notificaciones.exito('Usuario creado.');
+      await this.router.navigate(['/usuarios', nuevoId]);
     } catch (e) {
       this.mostrarError(e);
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  /** Guarda los datos y, si cambiaron, los permisos; después vuelve al listado. */
+  private async actualizar(id: string, datos: DatosUsuario): Promise<void> {
+    const cambiarPermisos = this.permisosModificados();
+
+    if (cambiarPermisos && this.permisos().length === 0) {
+      const confirmado = await this.dialogos.confirmar({
+        titulo: 'Quitar todos los permisos',
+        mensaje: `${this.nombreActual()} podrá iniciar sesión, pero no tendrá acceso a ningún módulo.`,
+        textoConfirmar: 'Quitar permisos',
+        tipo: 'peligro',
+      });
+      if (!confirmado) return;
+    }
+
+    this.guardando.set(true);
+    try {
+      try {
+        await firstValueFrom(this.usuarios.actualizar(id, datos));
+      } catch (e) {
+        this.mostrarError(e);
+        return;
+      }
+
+      if (cambiarPermisos) {
+        try {
+          await firstValueFrom(this.usuarios.asignarPermisos(id, this.permisos()));
+        } catch (e) {
+          // Los datos ya se guardaron; se queda en la pantalla para reintentar los permisos.
+          this.errorGeneral.set(
+            `Los datos se guardaron, pero no se pudieron actualizar los permisos${
+              esApiError(e) ? `: ${e.mensaje}` : '.'
+            }`,
+          );
+          return;
+        }
+      }
+
+      this.notificaciones.exito(
+        cambiarPermisos
+          ? 'Usuario actualizado. Los permisos se aplicarán cuando vuelva a iniciar sesión.'
+          : 'Usuario actualizado.',
+      );
+      await this.router.navigate(['/usuarios']);
     } finally {
       this.guardando.set(false);
     }
