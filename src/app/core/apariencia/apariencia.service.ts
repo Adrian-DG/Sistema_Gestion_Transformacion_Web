@@ -53,9 +53,17 @@ export class AparienciaService {
    * descargando el logo si cambió.
    */
   async actualizar(nueva: Apariencia): Promise<void> {
-    const logo = nueva.tieneLogo ? await this.descargarLogo(nueva.version) : null;
+    const logo = nueva.tieneLogo ? await this.descargarLogo(nueva) : null;
     await this.almacen.guardar<AparienciaGuardada>(CLAVE, { apariencia: nueva, logo });
     this.aplicar(nueva, logo);
+  }
+
+  /**
+   * Vuelve a leer la apariencia activa y la aplica. Úselo después de editar o activar una apariencia
+   * desde la administración, para que el cambio se vea sin recargar.
+   */
+  async refrescar(): Promise<void> {
+    await this.sincronizar(null);
   }
 
   private async sincronizar(guardada: AparienciaGuardada | null): Promise<void> {
@@ -71,6 +79,7 @@ export class AparienciaService {
       // También se descarga de nuevo si el logo no se pudo obtener la vez anterior.
       const sinCambios =
         guardada !== null &&
+        guardada.apariencia.id === remota.id &&
         guardada.apariencia.version === remota.version &&
         guardada.apariencia.actualizadoEn === remota.actualizadoEn &&
         (!remota.tieneLogo || guardada.logo !== null);
@@ -83,10 +92,11 @@ export class AparienciaService {
     }
   }
 
-  private async descargarLogo(version: number): Promise<Blob | null> {
+  /** El Id va en la URL porque al activar otra apariencia la versión puede coincidir. */
+  private async descargarLogo(apariencia: Apariencia): Promise<Blob | null> {
     try {
       return await firstValueFrom(
-        this.http.get(api(`configuracion/apariencia/logo?v=${version}`), {
+        this.http.get(api(`configuracion/apariencia/logo?v=${apariencia.id}-${apariencia.version}`), {
           responseType: 'blob',
           context: new HttpContext().set(SIN_AVISO_ERROR, true),
         }),

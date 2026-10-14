@@ -12,6 +12,26 @@ const modulos: Routes = [
     loadChildren: () =>
       import('./features/usuarios/usuarios.routes').then((m) => m.USUARIOS_ROUTES),
   },
+  {
+    path: 'apariencia',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.Administrador] },
+    loadChildren: () =>
+      import('./features/apariencia/apariencia.routes').then((m) => m.APARIENCIA_ROUTES),
+  },
+  {
+    path: 'vehiculos',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionVehiculos] },
+    loadChildren: () =>
+      import('./features/vehiculos/vehiculos.routes').then((m) => m.VEHICULOS_ROUTES),
+  },
+  {
+    path: 'polizas',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionPolizas] },
+    loadChildren: () => import('./features/polizas/polizas.routes').then((m) => m.POLIZAS_ROUTES),
+  },
 ];
 
 /** Módulos de las fases siguientes: por ahora muestran "en desarrollo", con sus permisos ya aplicados. */

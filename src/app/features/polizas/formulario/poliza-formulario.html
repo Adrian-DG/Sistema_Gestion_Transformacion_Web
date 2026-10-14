@@ -1,0 +1,150 @@
+<a
+  routerLink="/polizas"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Pólizas
+</a>
+
+<app-encabezado-pagina
+  seccion="Pólizas"
+  [titulo]="esEdicion() ? 'Editar póliza' : renovar() ? 'Renovar póliza' : 'Nueva póliza'"
+  [descripcion]="
+    esEdicion()
+      ? 'Corrija los datos de la póliza. Para renovarla, registre una nueva.'
+      : renovar()
+        ? 'Se registra una póliza nueva; la anterior se conserva en el historial.'
+        : 'Registre la póliza de seguro de un vehículo.'
+  "
+/>
+
+@if (cargando()) {
+  <div class="flex justify-center py-16"><app-cargando texto="Cargando póliza…" /></div>
+} @else {
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+    @if (errorGeneral(); as mensaje) {
+      <div
+        class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        role="alert"
+      >
+        <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+        <span>{{ mensaje }}</span>
+      </div>
+    }
+
+    @if (renovar() && referencia(); as anterior) {
+      <div
+        class="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+        role="status"
+      >
+        <app-icono nombre="info" [tamano]="18" class="mt-0.5" />
+        <span>
+          Renovación de la póliza <strong>{{ anterior.numero }}</strong> ({{ anterior.aseguradora }}),
+          que vence el {{ anterior.fechaVencimiento }}.
+        </span>
+      </div>
+    }
+
+    <section class="tarjeta" aria-labelledby="sec-poliza">
+      <h2 id="sec-poliza" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        Póliza
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2">
+        <app-campo
+          etiqueta="Vehículo"
+          para="vehiculoId"
+          [control]="formulario.controls.vehiculoId"
+          class="sm:col-span-2"
+          requerido
+        >
+          <select id="vehiculoId" class="control" formControlName="vehiculoId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (v of vehiculos(); track v.id) {
+              <option [ngValue]="v.id">{{ v.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Aseguradora"
+          para="aseguradoraId"
+          [control]="formulario.controls.aseguradoraId"
+          requerido
+        >
+          <select id="aseguradoraId" class="control" formControlName="aseguradoraId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (a of aseguradoras(); track a.id) {
+              <option [ngValue]="a.id">{{ a.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Número de póliza"
+          para="numero"
+          [control]="formulario.controls.numero"
+          requerido
+        >
+          <input
+            id="numero"
+            class="control font-mono"
+            formControlName="numero"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </app-campo>
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-vigencia">
+      <h2 id="sec-vigencia" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        Vigencia
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-3">
+        <app-campo
+          etiqueta="Fecha de expedición"
+          para="fechaExpedicion"
+          [control]="formulario.controls.fechaExpedicion"
+          requerido
+        >
+          <input id="fechaExpedicion" type="date" class="control" formControlName="fechaExpedicion" />
+        </app-campo>
+        <app-campo
+          etiqueta="Fecha de efectividad"
+          para="fechaEfectividad"
+          [control]="formulario.controls.fechaEfectividad"
+          ayuda="Desde cuándo cubre la póliza."
+          requerido
+        >
+          <input
+            id="fechaEfectividad"
+            type="date"
+            class="control"
+            formControlName="fechaEfectividad"
+          />
+        </app-campo>
+        <app-campo
+          etiqueta="Fecha de vencimiento"
+          para="fechaVencimiento"
+          [control]="formulario.controls.fechaVencimiento"
+          ayuda="Ese día la póliza ya se considera vencida."
+          requerido
+        >
+          <input
+            id="fechaVencimiento"
+            type="date"
+            class="control"
+            formControlName="fechaVencimiento"
+          />
+        </app-campo>
+      </div>
+    </section>
+
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a routerLink="/polizas" class="btn btn-contorno">Cancelar</a>
+      <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+        @if (guardando()) {
+          <app-cargando class="text-current" />
+        }
+        {{ esEdicion() ? 'Guardar cambios' : renovar() ? 'Registrar renovación' : 'Registrar póliza' }}
+      </button>
+    </div>
+  </form>
+}

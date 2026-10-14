@@ -1,0 +1,90 @@
+<app-encabezado-pagina
+  seccion="Administración"
+  titulo="Apariencia"
+  descripcion="Logo, nombre y colores del sistema. Solo una apariencia está activa; las demás se conservan para usarlas después."
+>
+  <a routerLink="nueva" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nueva apariencia
+  </a>
+</app-encabezado-pagina>
+
+@if (cargando() && filas().length === 0) {
+  <div class="flex justify-center py-16"><app-cargando texto="Cargando apariencias…" /></div>
+} @else if (error() && filas().length === 0) {
+  <div class="tarjeta">
+    <app-estado-vacio icono="error" titulo="No se pudieron cargar las apariencias" />
+  </div>
+} @else {
+  <ul class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    @for (a of filas(); track a.id) {
+      <li
+        class="tarjeta flex flex-col overflow-hidden"
+        [class.ring-2]="a.esActiva"
+        [class.ring-secundario]="a.esActiva"
+      >
+        <div class="p-4 pb-0">
+          <app-vista-previa-apariencia [apariencia]="a" [logoUrl]="logos()[a.id] ?? null" />
+        </div>
+
+        <div class="flex flex-1 flex-col gap-2 p-4">
+          <div class="flex items-start justify-between gap-2">
+            <h2 class="font-semibold text-slate-900">{{ a.nombre }}</h2>
+            @if (a.esActiva) {
+              <app-estado-badge estado="Activa" />
+            }
+          </div>
+          @if (a.descripcion) {
+            <p class="text-sm text-slate-600">{{ a.descripcion }}</p>
+          }
+          <ul class="mt-auto flex gap-1.5 pt-2" aria-label="Colores">
+            @for (
+              color of [
+                a.colorPrimario,
+                a.colorSecundario,
+                a.colorBotonPrimario,
+                a.colorBotonSecundario,
+                a.colorBotonPeligro,
+              ];
+              track $index
+            ) {
+              <li
+                class="size-5 rounded-full border border-slate-300"
+                [style.background-color]="color"
+                [title]="color"
+              ></li>
+            }
+          </ul>
+          @if (a.actualizadoEn) {
+            <p class="text-xs text-slate-500">
+              Actualizada el {{ a.actualizadoEn | date: "d 'de' MMMM 'de' y" }}
+            </p>
+          }
+        </div>
+
+        <div class="flex flex-wrap justify-end gap-1 border-t border-slate-200 bg-slate-50 px-3 py-2">
+          <a [routerLink]="[a.id, 'editar']" class="btn btn-texto btn-sm">
+            <app-icono nombre="editar" [tamano]="16" /> Editar
+          </a>
+          <button
+            type="button"
+            class="btn btn-texto btn-sm"
+            [disabled]="procesando() === a.id"
+            (click)="duplicar(a)"
+          >
+            Duplicar
+          </button>
+          @if (!a.esActiva) {
+            <button
+              type="button"
+              class="btn btn-primario btn-sm"
+              [disabled]="procesando() === a.id"
+              (click)="activar(a)"
+            >
+              Activar
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+}

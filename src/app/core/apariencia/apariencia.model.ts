@@ -1,5 +1,7 @@
-/** Configuración visual devuelta por GET api/configuracion/apariencia. */
+/** Apariencia activa devuelta por GET api/configuracion/apariencia. */
 export interface Apariencia {
+  /** Cambia cuando se activa otra apariencia. */
+  id: string;
   nombreSistema: string;
   nombreCorto: string | null;
   nombreInstitucion: string | null;
@@ -21,6 +23,7 @@ export interface AparienciaGuardada {
 
 /** Mismos valores que el registro inicial del backend; se usan sin conexión en la primera visita. */
 export const APARIENCIA_PREDETERMINADA: Apariencia = {
+  id: '',
   nombreSistema: 'Sistema de Gestión de Transportación',
   nombreCorto: 'SGT',
   nombreInstitucion: 'Ministerio de Defensa · Dirección de Transportación (J-4)',

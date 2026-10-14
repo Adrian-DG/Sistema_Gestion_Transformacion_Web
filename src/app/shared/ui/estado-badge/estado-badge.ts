@@ -2,8 +2,16 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 type Tono = 'ambar' | 'verde' | 'rojo' | 'gris' | 'azul';
 
-/** Estados de solicitudes (EstatusSolicitud) y tickets (EstatusTicket) del backend. */
+/**
+ * Estados de solicitudes (EstatusSolicitud), tickets (EstatusTicket), cobertura de pólizas y
+ * disponibilidad de vehículos.
+ */
 const TONOS: Record<string, Tono> = {
+  Vigente: 'verde',
+  'Por vencer': 'ambar',
+  Vencida: 'rojo',
+  'Fuera de servicio': 'rojo',
+  Activa: 'verde',
   Pendiente: 'ambar',
   Aprobada: 'verde',
   Rechazada: 'rojo',
