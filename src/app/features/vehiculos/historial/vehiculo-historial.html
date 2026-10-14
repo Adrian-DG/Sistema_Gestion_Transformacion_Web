@@ -20,6 +20,22 @@
   <a routerLink="/vehiculos" class="btn btn-contorno">Volver</a>
   @if (v) {
     <a [routerLink]="['/vehiculos', v.id, 'editar']" class="btn btn-contorno">Editar</a>
+    @if (v.estatus === 'Inactivo') {
+      @if (puedeReactivar()) {
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="procesando()"
+          (click)="reactivar()"
+        >
+          Reactivar
+        </button>
+      }
+    } @else if (puedeEnviarATaller() && v.estatus !== 'EnMantenimiento') {
+      <a routerLink="/taller/nueva" [queryParams]="{ vehiculo: v.id }" class="btn btn-primario">
+        <app-icono nombre="herramienta" [tamano]="18" /> Enviar a taller
+      </a>
+    }
   }
 </app-encabezado-pagina>
 
@@ -144,11 +160,99 @@
     />
   </div>
 } @else {
-  <div class="tarjeta" role="tabpanel">
-    <app-estado-vacio
-      icono="construccion"
-      titulo="Sin entradas al taller"
-      mensaje="Aquí se mostrarán las solicitudes de taller del vehículo, con su mecánico, diagnóstico y piezas utilizadas, cuando se habilite el módulo de Taller."
-    />
+  <div role="tabpanel">
+    @if (historial() === null) {
+      <div class="tarjeta flex justify-center p-10"><app-cargando /></div>
+    } @else if (eventos().length === 0) {
+      <div class="tarjeta">
+        <app-estado-vacio
+          icono="herramienta"
+          titulo="Sin entradas al taller"
+          mensaje="El vehículo no tiene solicitudes de taller registradas."
+        />
+      </div>
+    } @else {
+      <p class="mb-3 text-sm text-slate-600">
+        {{ historial()!.solicitudes.length }} solicitud(es) de taller · Costo total en piezas:
+        <strong>{{ moneda(costoTotal()) }}</strong>
+      </p>
+      <ol class="space-y-3">
+        @for (e of eventos(); track $index) {
+          @if (e.tipo === 'solicitud') {
+            @let s = e.solicitud;
+            <li class="tarjeta p-4">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <a
+                    [routerLink]="['/taller', s.id]"
+                    class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
+                    >{{ s.numero }}</a
+                  >
+                  <span class="ml-2 text-sm text-slate-600">{{ nombreTipo(s.tipo) }}</span>
+                  <p class="text-xs text-slate-500">
+                    {{ e.fecha | date: 'dd/MM/y' }}
+                    @if (s.fechaSalida) {
+                      → {{ s.fechaSalida | date: 'dd/MM/y' }}
+                    }
+                    @if (s.mecanico) {
+                      · Mecánico: {{ s.mecanico }}
+                    }
+                    @if (s.kilometraje !== null) {
+                      · {{ s.kilometraje | number }} km
+                    }
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  @if (s.procedeBaja) {
+                    <app-estado-badge estado="Inactivo" />
+                  }
+                  <app-estado-badge [estado]="nombreEstatusTaller(s.estatus)" />
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-slate-800">{{ s.motivo }}</p>
+              @if (s.diagnostico) {
+                <dl class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt class="text-xs text-slate-500">Diagnóstico</dt>
+                    <dd class="text-slate-800">{{ s.diagnostico }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-slate-500">Trabajo realizado</dt>
+                    <dd class="text-slate-800">{{ s.trabajoRealizado }}</dd>
+                  </div>
+                </dl>
+              }
+              @if (s.motivoRechazoCancelacion) {
+                <p class="mt-2 text-xs text-slate-500">Motivo: {{ s.motivoRechazoCancelacion }}</p>
+              }
+              @if (e.piezas.length > 0) {
+                <ul class="mt-3 space-y-0.5 border-t border-slate-100 pt-2 text-xs text-slate-700">
+                  @for (p of e.piezas; track $index) {
+                    <li>
+                      {{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }} · {{ p.pieza }}
+                      <span class="text-slate-500">
+                        · {{ moneda(p.cantidad * p.costoUnitario) }}
+                        {{ p.origen === 'CompraDirecta' ? '(compra directa)' : '' }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+                <p class="mt-1 text-right text-xs font-medium text-slate-800">
+                  Piezas: {{ moneda(s.costoPiezas) }}
+                </p>
+              }
+            </li>
+          } @else {
+            <li class="tarjeta border-l-4 border-l-emerald-500 p-4">
+              <p class="text-sm font-semibold text-slate-900">Reactivación del vehículo</p>
+              <p class="text-xs text-slate-500">
+                {{ e.fecha | date: 'dd/MM/y h:mm a' }} · Autorizada por {{ e.autorizadoPor || '—' }}
+              </p>
+              <p class="mt-2 text-sm text-slate-800">{{ e.motivo }}</p>
+            </li>
+          }
+        }
+      </ol>
+    }
   </div>
 }

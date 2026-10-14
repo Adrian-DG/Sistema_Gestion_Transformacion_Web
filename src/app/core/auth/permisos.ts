@@ -7,6 +7,9 @@ export enum Permiso {
   GestionCombustible = 'GestionCombustible',
   GestionPersonas = 'GestionPersonas',
   GestionUsuarios = 'GestionUsuarios',
+  GestionTaller = 'GestionTaller',
+  GestionInventarioPiezas = 'GestionInventarioPiezas',
+  ReactivarVehiculos = 'ReactivarVehiculos',
 }
 
 /**

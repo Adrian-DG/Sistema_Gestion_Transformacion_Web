@@ -12,6 +12,8 @@ const TONOS: Record<string, Tono> = {
   Vencida: 'rojo',
   'No disponible': 'ambar',
   'En mantenimiento': 'rojo',
+  'En taller': 'rojo',
+  'Bajo mínimo': 'rojo',
   Activa: 'verde',
   Pendiente: 'ambar',
   Aprobada: 'verde',

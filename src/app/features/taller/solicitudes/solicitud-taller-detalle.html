@@ -1,0 +1,547 @@
+<a
+  routerLink="/taller"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Solicitudes de taller
+</a>
+
+@if (noEncontrada()) {
+  <div class="tarjeta p-6 text-sm text-slate-600">No se encontró la solicitud de taller.</div>
+} @else if (detalle(); as d) {
+  @let s = d.solicitud;
+
+  <app-encabezado-pagina
+    seccion="Taller"
+    [titulo]="'Solicitud ' + s.numero"
+    [descripcion]="
+      nombreTipo(s.tipo) +
+      ' · ' +
+      s.placa +
+      (s.ficha ? ' · Ficha ' + s.ficha : '') +
+      ' · ' +
+      s.vehiculo
+    "
+  >
+    <a
+      [routerLink]="['/vehiculos', s.vehiculoId, 'historial']"
+      [queryParams]="{ vista: 'mantenimientos' }"
+      class="btn btn-contorno"
+    >
+      Historial del vehículo
+    </a>
+    @if (s.estatus === 'Pendiente') {
+      <button
+        type="button"
+        class="btn btn-contorno !text-red-700"
+        [disabled]="procesando()"
+        (click)="rechazar()"
+      >
+        Rechazar
+      </button>
+    }
+    @if (s.estatus === 'Pendiente' || s.estatus === 'EnTaller') {
+      <button type="button" class="btn btn-contorno" [disabled]="procesando()" (click)="cancelar()">
+        Cancelar
+      </button>
+    }
+  </app-encabezado-pagina>
+
+  <!-- Resumen -->
+  <section class="tarjeta mb-6">
+    <dl class="grid gap-x-6 gap-y-4 p-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <dt class="text-xs text-slate-500">Estado</dt>
+        <dd class="mt-1">
+          <app-estado-badge [estado]="nombreEstatus(s.estatus)" />
+          @if (s.procedeBaja) {
+            <span class="ml-1 text-xs font-medium text-red-700">Vehículo dado de baja</span>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Solicitante</dt>
+        <dd class="mt-1 text-slate-900">{{ s.solicitante }}</dd>
+        <dd class="font-mono text-xs text-slate-500">{{ s.solicitanteCedula }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Mecánico</dt>
+        <dd class="mt-1 text-slate-900">{{ s.mecanico ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Kilometraje</dt>
+        <dd class="mt-1 text-slate-900">
+          {{ s.kilometraje !== null ? (s.kilometraje | number) + ' km' : '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Solicitada</dt>
+        <dd class="mt-1 text-slate-900">{{ s.fechaSolicitud | date: 'dd/MM/y h:mm a' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Ingreso</dt>
+        <dd class="mt-1 text-slate-900">{{ (s.fechaIngreso | date: 'dd/MM/y h:mm a') ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Salida</dt>
+        <dd class="mt-1 text-slate-900">{{ (s.fechaSalida | date: 'dd/MM/y h:mm a') ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-slate-500">Costo de piezas</dt>
+        <dd class="mt-1 font-semibold text-slate-900">{{ moneda(s.costoPiezas) }}</dd>
+      </div>
+      <div class="sm:col-span-2 lg:col-span-4">
+        <dt class="text-xs text-slate-500">Motivo</dt>
+        <dd class="mt-1 whitespace-pre-line text-slate-900">{{ s.motivo }}</dd>
+      </div>
+      @if (s.diagnostico) {
+        <div class="sm:col-span-2">
+          <dt class="text-xs text-slate-500">Diagnóstico</dt>
+          <dd class="mt-1 whitespace-pre-line text-slate-900">{{ s.diagnostico }}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs text-slate-500">Trabajo realizado</dt>
+          <dd class="mt-1 whitespace-pre-line text-slate-900">{{ s.trabajoRealizado }}</dd>
+        </div>
+      }
+      @if (s.motivoRechazoCancelacion) {
+        <div class="sm:col-span-2 lg:col-span-4">
+          <dt class="text-xs text-slate-500">Motivo del rechazo o la cancelación</dt>
+          <dd class="mt-1 text-slate-900">{{ s.motivoRechazoCancelacion }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <!-- Ingreso -->
+  @if (s.estatus === 'Pendiente') {
+    <section class="tarjeta mb-6" aria-labelledby="sec-ingreso">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="sec-ingreso" class="font-semibold text-slate-900">Ingreso al taller</h2>
+        <p class="text-xs text-slate-500">
+          Al ingresar, el vehículo pasa a En mantenimiento y no se puede asignar. Si está en una
+          misión, primero registre su retorno.
+        </p>
+      </header>
+      <form
+        [formGroup]="ingreso"
+        (ngSubmit)="ingresar()"
+        novalidate
+        class="grid gap-5 p-5 sm:grid-cols-[1fr_12rem_auto] sm:items-end"
+      >
+        <app-campo
+          etiqueta="Mecánico asignado"
+          para="mecanicoId"
+          [control]="ingreso.controls.mecanicoId"
+          requerido
+        >
+          <select id="mecanicoId" class="control" formControlName="mecanicoId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            @for (m of mecanicos(); track m.id) {
+              <option [ngValue]="m.id">{{ m.nombre }}</option>
+            }
+          </select>
+        </app-campo>
+        <app-campo
+          etiqueta="Kilometraje al ingreso"
+          para="kmIngreso"
+          [control]="ingreso.controls.kilometraje"
+        >
+          <input
+            id="kmIngreso"
+            type="number"
+            min="0"
+            class="control"
+            formControlName="kilometraje"
+          />
+        </app-campo>
+        <button type="submit" class="btn btn-primario" [disabled]="procesando()">
+          @if (procesando()) {
+            <app-cargando class="text-current" />
+          }
+          Ingresar al taller
+        </button>
+      </form>
+      @if (mecanicos().length === 0) {
+        <p class="px-5 pb-4 text-xs text-amber-700">
+          No hay mecánicos activos.
+          <a routerLink="/mecanicos/nuevo" class="underline">Registre uno</a>.
+        </p>
+      }
+    </section>
+  }
+
+  <!-- Piezas utilizadas -->
+  @if (s.estatus !== 'Pendiente' && s.estatus !== 'Rechazada') {
+    <section class="tarjeta mb-6 overflow-hidden" aria-labelledby="sec-piezas">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="sec-piezas" class="font-semibold text-slate-900">Piezas utilizadas</h2>
+        <p class="text-xs text-slate-500">
+          Se descuentan del inventario. Si no alcanza la existencia, lo faltante se registra como
+          compra directa con su costo y recibo.
+        </p>
+      </header>
+
+      @if (d.piezas.length > 0) {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-left text-xs text-slate-500">
+              <tr>
+                <th class="px-5 py-2 font-medium">Pieza</th>
+                <th class="px-5 py-2 text-right font-medium">Cantidad</th>
+                <th class="px-5 py-2 text-right font-medium">Costo unitario</th>
+                <th class="px-5 py-2 text-right font-medium">Subtotal</th>
+                <th class="px-5 py-2 font-medium">Origen</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (p of d.piezas; track $index) {
+                <tr>
+                  <td class="px-5 py-2">
+                    <span class="block text-slate-900">{{ p.pieza }}</span>
+                    <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+                  </td>
+                  <td class="px-5 py-2 text-right">
+                    {{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }}
+                  </td>
+                  <td class="px-5 py-2 text-right">{{ moneda(p.costoUnitario) }}</td>
+                  <td class="px-5 py-2 text-right font-medium">
+                    {{ moneda(p.cantidad * p.costoUnitario) }}
+                  </td>
+                  <td class="px-5 py-2">
+                    {{ p.origen === 'Inventario' ? 'Inventario' : 'Compra directa' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="px-5 py-4 text-sm text-slate-500">No se han registrado piezas.</p>
+      }
+
+      @if (d.compras.length > 0) {
+        <div class="border-t border-slate-200 px-5 py-4">
+          <h3 class="mb-2 text-sm font-semibold text-slate-800">Compras directas</h3>
+          <ul class="space-y-2 text-sm">
+            @for (c of d.compras; track c.id) {
+              <li class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="text-slate-900"
+                  >{{ c.cantidad | number: '1.0-2' }} × {{ c.pieza }}</span
+                >
+                <span class="text-slate-500"
+                  >{{ c.proveedor }}{{ c.numeroFactura ? ' · ' + c.numeroFactura : '' }}</span
+                >
+                <span class="font-medium">{{ moneda(c.cantidad * c.costoUnitario) }}</span>
+                @for (r of c.recibos; track r.id) {
+                  <button type="button" class="btn btn-texto btn-sm" (click)="verRecibo(r)">
+                    <app-icono nombre="descargar" [tamano]="16" /> Recibo
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (d.devoluciones.length > 0) {
+        <div class="border-t border-slate-200 px-5 py-4 text-sm">
+          <h3 class="mb-2 font-semibold text-slate-800">Devueltas al inventario al cancelar</h3>
+          <ul class="space-y-1 text-slate-700">
+            @for (p of d.devoluciones; track $index) {
+              <li>{{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }} · {{ p.pieza }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <!-- Agregar pieza -->
+      @if (s.estatus === 'EnTaller') {
+        <form
+          [formGroup]="pieza"
+          (ngSubmit)="agregarPieza()"
+          novalidate
+          class="space-y-4 border-t border-slate-200 bg-slate-50/60 p-5"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">Agregar pieza</h3>
+          @if (errorPieza(); as mensaje) {
+            <div
+              class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+              role="alert"
+            >
+              <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+              <span>{{ mensaje }}</span>
+            </div>
+          }
+          <div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
+            <app-campo etiqueta="Pieza" para="piezaId" [control]="pieza.controls.piezaId" requerido>
+              <select id="piezaId" class="control" formControlName="piezaId">
+                <option [ngValue]="null" disabled>Seleccione…</option>
+                @for (p of piezas(); track p.id) {
+                  <option [ngValue]="p.id">
+                    {{ p.nombre }} ({{ p.codigo }}) — existencia:
+                    {{ p.existencia | number: '1.0-2' }}
+                  </option>
+                }
+              </select>
+            </app-campo>
+            <app-campo
+              etiqueta="Cantidad"
+              para="cantidad"
+              [control]="pieza.controls.cantidad"
+              requerido
+            >
+              <input
+                id="cantidad"
+                type="number"
+                min="0.01"
+                step="0.01"
+                class="control"
+                formControlName="cantidad"
+              />
+            </app-campo>
+          </div>
+
+          @if (!creandoPieza()) {
+            <button type="button" class="btn btn-texto btn-sm" (click)="creandoPieza.set(true)">
+              <app-icono nombre="mas" [tamano]="16" /> La pieza no está en el catálogo
+            </button>
+          } @else {
+            <div class="rounded-md border border-slate-200 bg-white p-4" [formGroup]="nuevaPieza">
+              <p class="mb-3 text-xs text-slate-500">
+                Registre la pieza; quedará sin existencia y se comprará en esta orden.
+              </p>
+              <div class="grid gap-4 sm:grid-cols-[10rem_1fr_9rem_auto] sm:items-end">
+                <app-campo
+                  etiqueta="Código"
+                  para="npCodigo"
+                  [control]="nuevaPieza.controls.codigo"
+                  requerido
+                >
+                  <input
+                    id="npCodigo"
+                    class="control font-mono uppercase"
+                    formControlName="codigo"
+                  />
+                </app-campo>
+                <app-campo
+                  etiqueta="Nombre"
+                  para="npNombre"
+                  [control]="nuevaPieza.controls.nombre"
+                  requerido
+                >
+                  <input id="npNombre" class="control" formControlName="nombre" />
+                </app-campo>
+                <app-campo
+                  etiqueta="Unidad"
+                  para="npUnidad"
+                  [control]="nuevaPieza.controls.unidadMedida"
+                  requerido
+                >
+                  <input
+                    id="npUnidad"
+                    class="control"
+                    formControlName="unidadMedida"
+                    list="np-unidades"
+                  />
+                  <datalist id="np-unidades">
+                    @for (u of unidades; track u) {
+                      <option [value]="u"></option>
+                    }
+                  </datalist>
+                </app-campo>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-contorno btn-sm"
+                    (click)="creandoPieza.set(false)"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primario btn-sm"
+                    [disabled]="procesando()"
+                    (click)="registrarPiezaNueva()"
+                  >
+                    Registrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (calculo(); as c) {
+            @if (c.faltante === 0) {
+              <p class="text-sm text-emerald-700">
+                Se tomarán {{ c.delInventario | number: '1.0-2' }} {{ c.pieza.unidadMedida }} del
+                inventario.
+              </p>
+            } @else {
+              <div class="rounded-md border border-amber-300 bg-amber-50 p-4">
+                <p class="mb-3 text-sm text-amber-900">
+                  @if (c.delInventario > 0) {
+                    Se tomarán {{ c.delInventario | number: '1.0-2' }} del inventario y faltan
+                  } @else {
+                    No hay existencia; faltan
+                  }
+                  <strong>{{ c.faltante | number: '1.0-2' }} {{ c.pieza.unidadMedida }}</strong
+                  >. Registre su compra:
+                </p>
+                <div class="grid gap-4 sm:grid-cols-3">
+                  <app-campo
+                    etiqueta="Proveedor"
+                    para="proveedorId"
+                    [control]="pieza.controls.proveedorId"
+                    requerido
+                  >
+                    <select id="proveedorId" class="control" formControlName="proveedorId">
+                      <option [ngValue]="null" disabled>Seleccione…</option>
+                      @for (p of proveedores(); track p.id) {
+                        <option [ngValue]="p.id">{{ p.nombre }}</option>
+                      }
+                    </select>
+                  </app-campo>
+                  <app-campo
+                    etiqueta="Costo unitario (RD$)"
+                    para="costoUnitario"
+                    [control]="pieza.controls.costoUnitario"
+                    requerido
+                  >
+                    <input
+                      id="costoUnitario"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      class="control"
+                      formControlName="costoUnitario"
+                    />
+                  </app-campo>
+                  <app-campo
+                    etiqueta="Número de factura"
+                    para="numeroFactura"
+                    [control]="pieza.controls.numeroFactura"
+                  >
+                    <input
+                      id="numeroFactura"
+                      class="control font-mono"
+                      formControlName="numeroFactura"
+                    />
+                  </app-campo>
+                  <app-campo
+                    etiqueta="Foto del recibo"
+                    para="recibo"
+                    [control]="pieza.controls.recibo"
+                    requerido
+                    class="sm:col-span-3"
+                  >
+                    <app-selector-archivo
+                      idControl="recibo"
+                      formControlName="recibo"
+                      descripcion="Foto (PNG o JPG) o PDF"
+                    />
+                  </app-campo>
+                </div>
+                <p class="mt-3 text-right text-sm text-amber-900">
+                  Total de la compra: <strong>{{ moneda(totalCompra()) }}</strong>
+                </p>
+              </div>
+            }
+          }
+
+          <div class="flex justify-end">
+            <button type="submit" class="btn btn-primario" [disabled]="procesando()">
+              @if (procesando()) {
+                <app-cargando class="text-current" />
+              }
+              Agregar pieza
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  }
+
+  <!-- Cierre -->
+  @if (s.estatus === 'EnTaller') {
+    <section class="tarjeta" aria-labelledby="sec-cierre">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="sec-cierre" class="font-semibold text-slate-900">Cierre de la orden</h2>
+        <p class="text-xs text-slate-500">
+          El vehículo vuelve a estar disponible, salvo que el mecánico dictamine su baja.
+        </p>
+      </header>
+      <form [formGroup]="cierre" (ngSubmit)="finalizar()" novalidate class="space-y-5 p-5">
+        @if (errorCierre(); as mensaje) {
+          <div
+            class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+            role="alert"
+          >
+            <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+            <span>{{ mensaje }}</span>
+          </div>
+        }
+        <div class="grid gap-5 sm:grid-cols-2">
+          <app-campo
+            etiqueta="Diagnóstico"
+            para="diagnostico"
+            [control]="cierre.controls.diagnostico"
+            requerido
+          >
+            <textarea
+              id="diagnostico"
+              rows="3"
+              class="control"
+              formControlName="diagnostico"
+            ></textarea>
+          </app-campo>
+          <app-campo
+            etiqueta="Trabajo realizado"
+            para="trabajoRealizado"
+            [control]="cierre.controls.trabajoRealizado"
+            requerido
+          >
+            <textarea
+              id="trabajoRealizado"
+              rows="3"
+              class="control"
+              formControlName="trabajoRealizado"
+            ></textarea>
+          </app-campo>
+        </div>
+        <label
+          class="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+          [class]="
+            cierre.controls.procedeBaja.value ? 'border-red-300 bg-red-50' : 'border-slate-200'
+          "
+        >
+          <input
+            type="checkbox"
+            class="mt-0.5 size-4 rounded border-slate-300 accent-red-600"
+            formControlName="procedeBaja"
+          />
+          <span>
+            <span class="block text-sm font-medium text-slate-800"
+              >El mecánico dictamina la baja del vehículo</span
+            >
+            <span class="block text-xs text-slate-500">
+              El vehículo pasará a INACTIVO y no se podrá asignar. Solo se reactiva por excepción,
+              con permiso.
+            </span>
+          </span>
+        </label>
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            class="btn"
+            [class]="cierre.controls.procedeBaja.value ? 'btn-peligro' : 'btn-primario'"
+            [disabled]="procesando()"
+          >
+            {{ cierre.controls.procedeBaja.value ? 'Finalizar y dar de baja' : 'Finalizar orden' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+} @else {
+  <div class="flex justify-center p-10"><app-cargando /></div>
+}

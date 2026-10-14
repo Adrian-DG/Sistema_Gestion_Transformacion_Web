@@ -71,6 +71,39 @@ export const MENU: GrupoMenu[] = [
     ],
   },
   {
+    titulo: 'Taller',
+    elementos: [
+      {
+        titulo: 'Solicitudes de taller',
+        ruta: '/taller',
+        icono: 'herramienta',
+        permisos: [Permiso.GestionTaller],
+        descripcion: 'Ingreso, piezas utilizadas y cierre de mantenimientos',
+      },
+      {
+        titulo: 'Mecánicos',
+        ruta: '/mecanicos',
+        icono: 'mecanico',
+        permisos: [Permiso.GestionTaller],
+        descripcion: 'Personal militar y civil del taller',
+      },
+      {
+        titulo: 'Inventario de piezas',
+        ruta: '/inventario-piezas',
+        icono: 'pieza',
+        permisos: [Permiso.GestionInventarioPiezas],
+        descripcion: 'Existencias, entradas y kardex',
+      },
+      {
+        titulo: 'Proveedores',
+        ruta: '/proveedores',
+        icono: 'proveedor',
+        permisos: [Permiso.GestionInventarioPiezas],
+        descripcion: 'Suplidores de piezas',
+      },
+    ],
+  },
+  {
     titulo: 'Análisis',
     elementos: [
       {

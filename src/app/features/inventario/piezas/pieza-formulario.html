@@ -1,0 +1,127 @@
+<a
+  routerLink="/inventario-piezas"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Inventario de piezas
+</a>
+
+<app-encabezado-pagina
+  seccion="Taller"
+  [titulo]="esEdicion() ? 'Editar pieza' : 'Nueva pieza'"
+  [descripcion]="
+    esEdicion()
+      ? 'Existencia actual: ' + (existencia() ?? '…')
+      : 'La pieza se registra sin existencia; entra al inventario con una entrada o una compra directa en el taller.'
+  "
+/>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  <section class="tarjeta" aria-labelledby="sec-pieza">
+    <h2 id="sec-pieza" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Datos de la pieza
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+      <app-campo etiqueta="Código" para="codigo" [control]="formulario.controls.codigo" requerido>
+        <input
+          id="codigo"
+          class="control font-mono uppercase"
+          formControlName="codigo"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Nombre"
+        para="nombre"
+        [control]="formulario.controls.nombre"
+        requerido
+        class="lg:col-span-2"
+      >
+        <input id="nombre" class="control" formControlName="nombre" />
+      </app-campo>
+      <app-campo
+        etiqueta="Unidad de medida"
+        para="unidadMedida"
+        [control]="formulario.controls.unidadMedida"
+        requerido
+      >
+        <input
+          id="unidadMedida"
+          class="control"
+          formControlName="unidadMedida"
+          list="unidades-medida"
+        />
+        <datalist id="unidades-medida">
+          @for (u of unidades; track u) {
+            <option [value]="u"></option>
+          }
+        </datalist>
+      </app-campo>
+      <app-campo
+        etiqueta="Existencia mínima"
+        para="existenciaMinima"
+        [control]="formulario.controls.existenciaMinima"
+        ayuda="Por debajo de esta cantidad la pieza se marca para reponer."
+        requerido
+      >
+        <input
+          id="existenciaMinima"
+          type="number"
+          min="0"
+          step="0.01"
+          class="control"
+          formControlName="existenciaMinima"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Descripción"
+        para="descripcion"
+        [control]="formulario.controls.descripcion"
+        class="sm:col-span-2 lg:col-span-3"
+      >
+        <textarea
+          id="descripcion"
+          rows="2"
+          class="control"
+          formControlName="descripcion"
+        ></textarea>
+      </app-campo>
+      @if (esEdicion()) {
+        <label class="flex cursor-pointer items-start gap-3 sm:col-span-2 lg:col-span-3">
+          <input
+            type="checkbox"
+            class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+            formControlName="activo"
+          />
+          <span>
+            <span class="block text-sm font-medium text-slate-800">Activa</span>
+            <span class="block text-xs text-slate-500">
+              Desmárquela para que no aparezca al registrar entradas ni piezas en el taller.
+              Conserva su kardex.
+            </span>
+          </span>
+        </label>
+      }
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/inventario-piezas" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      {{ esEdicion() ? 'Guardar cambios' : 'Registrar pieza' }}
+    </button>
+  </div>
+</form>

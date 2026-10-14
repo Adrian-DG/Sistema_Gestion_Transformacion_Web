@@ -46,6 +46,33 @@ const modulos: Routes = [
     data: { permisos: [Permiso.GestionPolizas] },
     loadChildren: () => import('./features/polizas/polizas.routes').then((m) => m.POLIZAS_ROUTES),
   },
+  {
+    path: 'taller',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionTaller] },
+    loadChildren: () => import('./features/taller/taller.routes').then((m) => m.TALLER_ROUTES),
+  },
+  {
+    path: 'mecanicos',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionTaller] },
+    loadChildren: () =>
+      import('./features/taller/mecanicos.routes').then((m) => m.MECANICOS_ROUTES),
+  },
+  {
+    path: 'inventario-piezas',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionInventarioPiezas] },
+    loadChildren: () =>
+      import('./features/inventario/inventario.routes').then((m) => m.INVENTARIO_ROUTES),
+  },
+  {
+    path: 'proveedores',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionInventarioPiezas] },
+    loadChildren: () =>
+      import('./features/inventario/proveedores.routes').then((m) => m.PROVEEDORES_ROUTES),
+  },
 ];
 
 /** Módulos de las fases siguientes: por ahora muestran "en desarrollo", con sus permisos ya aplicados. */

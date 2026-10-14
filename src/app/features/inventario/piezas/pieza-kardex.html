@@ -1,0 +1,62 @@
+@let p = pieza();
+
+<a
+  routerLink="/inventario-piezas"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Inventario de piezas
+</a>
+
+<app-encabezado-pagina
+  seccion="Taller · Inventario"
+  [titulo]="p ? 'Kardex: ' + p.nombre : 'Kardex'"
+  [descripcion]="
+    p ? p.codigo + ' · Existencia: ' + (p.existencia | number: '1.0-2') + ' ' + p.unidadMedida : ''
+  "
+>
+  @if (p) {
+    <a [routerLink]="['/inventario-piezas', p.id, 'editar']" class="btn btn-contorno">Editar</a>
+  }
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    mensajeVacio="La pieza no tiene movimientos"
+  >
+    <ng-template appCelda="fecha" let-m>
+      <span class="whitespace-nowrap">{{ m.fecha | date: 'dd/MM/y h:mm a' }}</span>
+    </ng-template>
+
+    <ng-template appCelda="concepto" let-m>{{ nombreConcepto(m.concepto) }}</ng-template>
+
+    <ng-template appCelda="cantidad" let-m>
+      <span class="font-semibold" [class]="m.cantidad < 0 ? 'text-red-700' : 'text-emerald-700'"
+        >{{ m.cantidad > 0 ? '+' : '' }}{{ m.cantidad | number: '1.0-2' }}</span
+      >
+    </ng-template>
+
+    <ng-template appCelda="costo" let-m>{{ moneda(m.costoUnitario) }}</ng-template>
+
+    <ng-template appCelda="referencia" let-m>
+      @if (m.solicitudTaller) {
+        <span class="block font-mono text-xs">{{ m.solicitudTaller }}</span>
+        <span class="block text-xs text-slate-500">Vehículo {{ m.placa }}</span>
+      }
+      @if (m.proveedor) {
+        <span class="block text-xs text-slate-500">
+          {{ m.proveedor }}{{ m.numeroFactura ? ' · ' + m.numeroFactura : '' }}
+        </span>
+      }
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

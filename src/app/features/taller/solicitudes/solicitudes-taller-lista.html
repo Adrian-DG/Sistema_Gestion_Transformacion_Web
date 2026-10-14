@@ -1,0 +1,99 @@
+<app-encabezado-pagina
+  seccion="Taller"
+  titulo="Solicitudes de taller"
+  descripcion="Todo vehículo entra al taller con una solicitud. Al ingresar se le asigna un mecánico y queda en mantenimiento hasta el cierre."
+>
+  <a routerLink="nueva" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nueva solicitud
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row">
+    <label class="relative flex-1">
+      <span class="sr-only">Buscar solicitudes</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por número, placa, ficha, motivo, solicitante o mecánico"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+    <label class="sm:w-48">
+      <span class="sr-only">Tipo</span>
+      <select class="control" (change)="filtrar('tipo', $any($event.target).value)">
+        <option value="" [selected]="!tipo()">Todos los tipos</option>
+        @for (t of tipos; track t.codigo) {
+          <option [value]="t.codigo" [selected]="tipo() === t.codigo">{{ t.nombre }}</option>
+        }
+      </select>
+    </label>
+    <label class="sm:w-48">
+      <span class="sr-only">Estado</span>
+      <select class="control" (change)="filtrar('estatus', $any($event.target).value)">
+        <option value="" [selected]="!estatus()">Todos los estados</option>
+        @for (e of estados; track e.codigo) {
+          <option [value]="e.codigo" [selected]="estatus() === e.codigo">{{ e.nombre }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="
+      q() || estatus() || tipo()
+        ? 'Ninguna solicitud coincide con los filtros'
+        : 'No hay solicitudes de taller registradas'
+    "
+  >
+    <ng-template appCelda="numero" let-s>
+      <a
+        [routerLink]="s.id"
+        class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
+        >{{ s.numero }}</a
+      >
+      <span class="block text-xs text-slate-500">
+        {{ nombreTipo(s.tipo) }} · {{ s.fechaSolicitud | date: 'dd/MM/y' }}
+      </span>
+    </ng-template>
+
+    <ng-template appCelda="vehiculo" let-s>
+      <span class="block font-mono font-semibold text-slate-900">
+        {{ s.placa }}{{ s.ficha ? ' · ' + s.ficha : '' }}
+      </span>
+      <span class="block text-xs text-slate-500">{{ s.vehiculo }}</span>
+    </ng-template>
+
+    <ng-template appCelda="motivo" let-s>
+      <span class="block max-w-72 truncate" [title]="s.motivo">{{ s.motivo }}</span>
+      @if (s.costoPiezas > 0) {
+        <span class="block text-xs text-slate-500">Piezas: {{ moneda(s.costoPiezas) }}</span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="mecanico" let-s>{{ s.mecanico ?? '—' }}</ng-template>
+
+    <ng-template appCelda="estatus" let-s>
+      <app-estado-badge [estado]="nombreEstatus(s.estatus)" />
+      @if (s.procedeBaja) {
+        <span class="mt-0.5 block text-xs font-medium text-red-700">Dado de baja</span>
+      }
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

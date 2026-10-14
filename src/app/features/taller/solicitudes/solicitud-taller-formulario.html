@@ -1,0 +1,116 @@
+<a
+  routerLink="/taller"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Solicitudes de taller
+</a>
+
+<app-encabezado-pagina
+  seccion="Taller"
+  titulo="Nueva solicitud de taller"
+  descripcion="El número se genera al registrar. El vehículo sigue disponible hasta que ingrese al taller."
+/>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  <section class="tarjeta" aria-labelledby="sec-vehiculo">
+    <h2 id="sec-vehiculo" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Vehículo y motivo
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo etiqueta="Vehículo" para="vehiculoId" [control]="c.vehiculoId" requerido>
+        <select id="vehiculoId" class="control" formControlName="vehiculoId">
+          <option [ngValue]="null" disabled>Seleccione…</option>
+          @for (v of vehiculos(); track v.id) {
+            <option [ngValue]="v.id">{{ v.nombre }}</option>
+          }
+        </select>
+      </app-campo>
+      <app-campo etiqueta="Kilometraje" para="kilometraje" [control]="c.kilometraje">
+        <input
+          id="kilometraje"
+          type="number"
+          min="0"
+          step="1"
+          class="control"
+          formControlName="kilometraje"
+        />
+      </app-campo>
+
+      <fieldset class="sm:col-span-2">
+        <legend class="mb-2 text-sm font-medium text-slate-700">Tipo</legend>
+        <div class="flex flex-wrap gap-2">
+          @for (t of tipos; track t.valor) {
+            <label
+              class="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm"
+              [class]="
+                c.tipo.value === t.valor
+                  ? 'border-primario bg-primario/5 text-slate-900'
+                  : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+              "
+            >
+              <input
+                type="radio"
+                class="accent-primario"
+                formControlName="tipo"
+                [value]="t.valor"
+              />
+              {{ t.nombre }}
+            </label>
+          }
+        </div>
+        @if (c.tipo.value === 3) {
+          <p class="mt-2 text-xs text-slate-500">
+            El mecánico revisará el vehículo y dictaminará si se da de baja (pasa a inactivo).
+          </p>
+        }
+      </fieldset>
+
+      <app-campo
+        etiqueta="Motivo"
+        para="motivo"
+        [control]="c.motivo"
+        requerido
+        class="sm:col-span-2"
+        ayuda="Falla reportada o mantenimiento a realizar."
+      >
+        <textarea id="motivo" rows="3" class="control" formControlName="motivo"></textarea>
+      </app-campo>
+    </div>
+  </section>
+
+  <section class="tarjeta" aria-labelledby="sec-solicitante">
+    <header class="border-b border-slate-200 px-5 py-3">
+      <h2 id="sec-solicitante" class="font-semibold text-slate-900">Quién solicita</h2>
+      <p class="text-xs text-slate-500">Búsqueda en SIPFFAA.</p>
+    </header>
+    <div class="p-5">
+      <app-campo etiqueta="Solicitante" para="solicitante" [control]="c.solicitante" requerido>
+        <app-buscador-sipffaa
+          tipo="miembro"
+          idControl="solicitante"
+          formControlName="solicitante"
+        />
+      </app-campo>
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/taller" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      Registrar solicitud
+    </button>
+  </div>
+</form>

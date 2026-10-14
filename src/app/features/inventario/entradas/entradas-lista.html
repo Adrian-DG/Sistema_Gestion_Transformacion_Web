@@ -1,0 +1,87 @@
+<a
+  routerLink="/inventario-piezas"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Inventario de piezas
+</a>
+
+<app-encabezado-pagina
+  seccion="Taller · Inventario"
+  titulo="Entradas al inventario"
+  descripcion="Compras de piezas a proveedores, con su factura. Las compras directas para una orden se registran en la solicitud de taller."
+>
+  <a routerLink="nueva" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Registrar entrada
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="border-b border-slate-200 p-4">
+    <label class="relative block">
+      <span class="sr-only">Buscar entradas</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por proveedor, factura o pieza"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="
+      q() ? 'Ninguna entrada coincide con la búsqueda' : 'No hay entradas registradas'
+    "
+  >
+    <ng-template appCelda="fecha" let-e>
+      <span class="whitespace-nowrap">{{ e.fecha | date: 'dd/MM/y' }}</span>
+    </ng-template>
+
+    <ng-template appCelda="proveedor" let-e>
+      <span class="block text-slate-900">{{ e.proveedor }}</span>
+      @if (e.numeroFactura) {
+        <span class="block font-mono text-xs text-slate-500">{{ e.numeroFactura }}</span>
+      }
+    </ng-template>
+
+    <ng-template appCelda="lineas" let-e>
+      <ul class="space-y-0.5 text-xs">
+        @for (l of e.lineas; track l.codigo) {
+          <li>
+            <span class="font-medium text-slate-800">{{ l.cantidad | number: '1.0-2' }}</span>
+            {{ l.pieza }}
+            <span class="text-slate-500">· {{ moneda(l.costoUnitario) }}</span>
+          </li>
+        }
+      </ul>
+    </ng-template>
+
+    <ng-template appCelda="total" let-e>
+      <span class="font-semibold whitespace-nowrap">{{ moneda(e.total) }}</span>
+    </ng-template>
+
+    <ng-template appCelda="adjuntos" let-e>
+      @for (a of e.adjuntos; track a.id) {
+        <button type="button" class="btn btn-texto btn-sm" (click)="verAdjunto(a)">
+          <app-icono nombre="descargar" [tamano]="16" /> Factura
+        </button>
+      }
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>

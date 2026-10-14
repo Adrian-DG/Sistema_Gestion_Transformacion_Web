@@ -41,6 +41,13 @@ const ICONOS = {
   editar: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   escudo: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
   construccion: 'M2 20h20M5 20V9l7-5 7 5v11M9 20v-6h6v6',
+  herramienta:
+    'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z',
+  pieza: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  proveedor: 'M3 9l1.5-5h15L21 9M3 9h18v11H3zM9 20v-6h6v6',
+  mecanico:
+    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21l-3-3M17 16a2 2 0 1 0 4 0 2 2 0 0 0-4 0',
+  descargar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
 } as const;
 
 export type NombreIcono = keyof typeof ICONOS;

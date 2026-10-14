@@ -1,0 +1,158 @@
+<a
+  routerLink="/mecanicos"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Mecánicos
+</a>
+
+<app-encabezado-pagina
+  seccion="Taller"
+  [titulo]="esEdicion() ? 'Editar mecánico' : 'Nuevo mecánico'"
+  [descripcion]="
+    mecanico()
+      ? (mecanico()!.rango ? mecanico()!.rango + ' ' : '') +
+        mecanico()!.nombreCompleto +
+        ' · ' +
+        mecanico()!.identificacion
+      : 'Militar o civil. El personal civil que no está en SIPFFAA se registra con sus datos.'
+  "
+/>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  @if (!esEdicion()) {
+    <section class="tarjeta" aria-labelledby="sec-persona">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="sec-persona" class="font-semibold text-slate-900">Persona</h2>
+      </header>
+      <div class="space-y-5 p-5">
+        <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Origen de los datos">
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm"
+            [class]="
+              origen() === 'sipffaa'
+                ? 'border-primario bg-primario/5'
+                : 'border-slate-300 hover:bg-slate-50'
+            "
+          >
+            <input
+              type="radio"
+              name="origen"
+              class="accent-primario"
+              [checked]="origen() === 'sipffaa'"
+              (change)="aplicarOrigen('sipffaa')"
+            />
+            Buscar en SIPFFAA (militar)
+          </label>
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm"
+            [class]="
+              origen() === 'civil'
+                ? 'border-primario bg-primario/5'
+                : 'border-slate-300 hover:bg-slate-50'
+            "
+          >
+            <input
+              type="radio"
+              name="origen"
+              class="accent-primario"
+              [checked]="origen() === 'civil'"
+              (change)="aplicarOrigen('civil')"
+            />
+            Civil (registro manual)
+          </label>
+        </div>
+
+        @if (origen() === 'sipffaa') {
+          <app-campo etiqueta="Miembro" para="miembro" [control]="c.miembro" requerido>
+            <app-buscador-sipffaa tipo="miembro" idControl="miembro" formControlName="miembro" />
+          </app-campo>
+        } @else {
+          <div class="grid gap-5 sm:grid-cols-2">
+            <app-campo
+              etiqueta="Cédula"
+              para="identificacion"
+              [control]="c.identificacion"
+              requerido
+            >
+              <input
+                id="identificacion"
+                class="control font-mono"
+                formControlName="identificacion"
+                placeholder="000-0000000-0"
+              />
+            </app-campo>
+            <app-campo etiqueta="Sexo" para="sexo" [control]="c.sexo" requerido>
+              <select id="sexo" class="control" formControlName="sexo">
+                @for (s of sexos; track s.valor) {
+                  <option [ngValue]="s.valor">{{ s.nombre }}</option>
+                }
+              </select>
+            </app-campo>
+            <app-campo etiqueta="Nombre" para="nombre" [control]="c.nombre" requerido>
+              <input id="nombre" class="control" formControlName="nombre" />
+            </app-campo>
+            <app-campo etiqueta="Apellido" para="apellido" [control]="c.apellido" requerido>
+              <input id="apellido" class="control" formControlName="apellido" />
+            </app-campo>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="tarjeta" aria-labelledby="sec-taller">
+    <h2 id="sec-taller" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Datos en el taller
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo
+        etiqueta="Especialidad"
+        para="especialidad"
+        [control]="c.especialidad"
+        ayuda="Ej. motores diésel, frenos, electricidad."
+      >
+        <input id="especialidad" class="control" formControlName="especialidad" />
+      </app-campo>
+      @if (esEdicion() || origen() === 'civil') {
+        <app-campo etiqueta="Teléfono" para="telefono" [control]="c.telefono">
+          <input id="telefono" type="tel" class="control" formControlName="telefono" />
+        </app-campo>
+      }
+      @if (esEdicion()) {
+        <label class="flex cursor-pointer items-start gap-3 sm:col-span-2">
+          <input
+            type="checkbox"
+            class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+            formControlName="activo"
+          />
+          <span>
+            <span class="block text-sm font-medium text-slate-800">Activo</span>
+            <span class="block text-xs text-slate-500">
+              Desmárquelo para que no se le asignen nuevas órdenes; conserva su historial.
+            </span>
+          </span>
+        </label>
+      }
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/mecanicos" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      {{ esEdicion() ? 'Guardar cambios' : 'Registrar mecánico' }}
+    </button>
+  </div>
+</form>

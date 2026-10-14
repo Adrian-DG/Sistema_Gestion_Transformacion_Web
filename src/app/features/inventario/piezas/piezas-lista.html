@@ -1,0 +1,91 @@
+<app-encabezado-pagina
+  seccion="Taller"
+  titulo="Inventario de piezas"
+  descripcion="La existencia sale de las entradas, compras directas y consumos en el taller. Las piezas no se eliminan: se desactivan."
+>
+  <a routerLink="entradas" class="btn btn-contorno">Entradas</a>
+  <a routerLink="entradas/nueva" class="btn btn-contorno">
+    <app-icono nombre="subir" [tamano]="18" /> Registrar entrada
+  </a>
+  <a routerLink="nueva" class="btn btn-primario">
+    <app-icono nombre="mas" [tamano]="18" /> Nueva pieza
+  </a>
+</app-encabezado-pagina>
+
+<div class="tarjeta overflow-hidden">
+  <div class="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
+    <label class="relative flex-1">
+      <span class="sr-only">Buscar piezas</span>
+      <app-icono
+        nombre="buscar"
+        [tamano]="18"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        type="search"
+        class="control pl-10"
+        placeholder="Buscar por código, nombre o descripción"
+        [value]="q()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </label>
+    <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+      <input
+        type="checkbox"
+        class="size-4 rounded border-slate-300 accent-primario"
+        [checked]="bajoMinimo()"
+        (change)="filtrarBajoMinimo($any($event.target).checked)"
+      />
+      Solo bajo el mínimo
+    </label>
+  </div>
+
+  <app-tabla
+    [columnas]="columnas"
+    [filas]="filas()"
+    [cargando]="cargando()"
+    [mensajeVacio]="
+      q() || bajoMinimo() ? 'Ninguna pieza coincide con los filtros' : 'No hay piezas registradas'
+    "
+  >
+    <ng-template appCelda="pieza" let-p>
+      <span class="block text-slate-900">{{ p.nombre }}</span>
+      <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+    </ng-template>
+
+    <ng-template appCelda="existencia" let-p>
+      <span class="font-semibold" [class.text-red-700]="p.bajoMinimo">
+        {{ p.existencia | number: '1.0-2' }}
+      </span>
+      <span class="text-xs text-slate-500"> {{ p.unidadMedida }}</span>
+    </ng-template>
+
+    <ng-template appCelda="minima" let-p>{{ p.existenciaMinima | number: '1.0-2' }}</ng-template>
+
+    <ng-template appCelda="estado" let-p>
+      <div class="flex flex-wrap gap-1">
+        <app-estado-badge [estado]="p.activo ? 'Activo' : 'Inactivo'" />
+        @if (p.bajoMinimo) {
+          <app-estado-badge estado="Bajo mínimo" />
+        }
+      </div>
+    </ng-template>
+
+    <ng-template appCelda="acciones" let-p>
+      <a [routerLink]="[p.id, 'kardex']" class="btn btn-texto btn-sm">Kardex</a>
+      <a
+        [routerLink]="[p.id, 'editar']"
+        class="btn btn-texto btn-sm"
+        [attr.aria-label]="'Editar pieza ' + p.nombre"
+        >Editar</a
+      >
+    </ng-template>
+  </app-tabla>
+
+  <app-paginador
+    [pagina]="pagina()"
+    [tamano]="tamano()"
+    [total]="total()"
+    (cambio)="paginar($event)"
+  />
+</div>
