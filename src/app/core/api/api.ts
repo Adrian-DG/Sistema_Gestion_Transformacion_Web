@@ -1,13 +1,16 @@
 import { HttpContextToken } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { environment as Prod } from '../../../environments/environment';
+import { environment as Dev } from '../../../environments/environment.development';
+import { isDevMode } from '@angular/core';
 
 /** Construye la URL completa de un endpoint, ej. `api('configuracion/apariencia')`. */
 export function api(ruta: string): string {
-  return `${environment.apiUrl}/api/${ruta.replace(/^\/+/, '')}`;
+  const isDev = isDevMode() ? Dev : Prod;
+  return `${isDev.apiUrl}/api/${ruta.replace(/^\/+/, '')}`;
 }
 
 export function esUrlApi(url: string): boolean {
-  return url.startsWith(`${environment.apiUrl}/api/`);
+  return url.startsWith(`${(isDevMode() ? Dev : Prod).apiUrl}/api/`);
 }
 
 /** Respuesta paginada del backend (PagedData). */
