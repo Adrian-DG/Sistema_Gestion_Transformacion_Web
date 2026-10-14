@@ -1,0 +1,154 @@
+@let v = vehiculo();
+
+<app-encabezado-pagina
+  seccion="Inventario · Vehículos"
+  titulo="Historial del vehículo"
+  [descripcion]="
+    v
+      ? v.placa +
+        (v.ficha ? ' · Ficha ' + v.ficha : '') +
+        ' · ' +
+        v.marca +
+        ' ' +
+        v.modelo +
+        ' (' +
+        v.fabricacion +
+        ')'
+      : ''
+  "
+>
+  <a routerLink="/vehiculos" class="btn btn-contorno">Volver</a>
+  @if (v) {
+    <a [routerLink]="['/vehiculos', v.id, 'editar']" class="btn btn-contorno">Editar</a>
+  }
+</app-encabezado-pagina>
+
+@if (v) {
+  <div class="mb-4 flex items-center gap-2 text-sm text-slate-600">
+    Estatus actual: <app-estado-badge [estado]="nombreEstatus(v.estatus)" />
+  </div>
+}
+
+<div class="mb-4 flex gap-1 border-b border-slate-200" role="tablist" aria-label="Historial">
+  <button
+    type="button"
+    role="tab"
+    class="-mb-px border-b-2 px-4 py-2 text-sm font-medium"
+    [class]="
+      vista() === 'asignaciones'
+        ? 'border-primario text-slate-900'
+        : 'border-transparent text-slate-500 hover:text-slate-800'
+    "
+    [attr.aria-selected]="vista() === 'asignaciones'"
+    (click)="cambiarVista('asignaciones')"
+  >
+    Asignaciones
+  </button>
+  <button
+    type="button"
+    role="tab"
+    class="-mb-px border-b-2 px-4 py-2 text-sm font-medium"
+    [class]="
+      vista() === 'mantenimientos'
+        ? 'border-primario text-slate-900'
+        : 'border-transparent text-slate-500 hover:text-slate-800'
+    "
+    [attr.aria-selected]="vista() === 'mantenimientos'"
+    (click)="cambiarVista('mantenimientos')"
+  >
+    Mantenimientos
+  </button>
+</div>
+
+@if (vista() === 'asignaciones') {
+  <div class="tarjeta overflow-hidden" role="tabpanel">
+    <div class="flex justify-end border-b border-slate-200 p-4">
+      <label class="w-full sm:w-52">
+        <span class="sr-only">Estado</span>
+        <select class="control" (change)="filtrarEstatus($any($event.target).value)">
+          <option value="" [selected]="estatus() === null">Todos los estados</option>
+          @for (e of estados; track e) {
+            <option [value]="e" [selected]="estatus() === e">{{ e }}s</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <app-tabla
+      [columnas]="columnas"
+      [filas]="filas()"
+      [cargando]="cargando()"
+      [mensajeVacio]="
+        estatus()
+          ? 'El vehículo no tiene asignaciones con ese estado'
+          : 'El vehículo no tiene asignaciones registradas'
+      "
+    >
+      <ng-template appCelda="periodo" let-a>
+        <span class="block whitespace-nowrap">{{ a.fechaSalida | date: 'dd/MM/y h:mm a' }}</span>
+        <span class="block text-xs whitespace-nowrap text-slate-500">
+          Retorno: {{ a.fechaRetornoEstimada | date: 'dd/MM/y h:mm a' }}
+        </span>
+        @if (a.fechaRetornoReal) {
+          <span class="block text-xs whitespace-nowrap text-slate-500">
+            Regresó: {{ a.fechaRetornoReal | date: 'dd/MM/y h:mm a' }}
+          </span>
+        }
+      </ng-template>
+
+      <ng-template appCelda="asignado" let-a>
+        <span class="block text-slate-900">{{ a.asignadoA }}</span>
+        <span class="block font-mono text-xs text-slate-500">{{ a.asignadoACedula }}</span>
+        @if (a.cargo) {
+          <span class="block text-xs text-slate-500">Al cargo: {{ a.cargo }}</span>
+        }
+      </ng-template>
+
+      <ng-template appCelda="chofer" let-a>
+        <span class="block text-slate-900">
+          @if (a.rangoChofer) {
+            <span class="text-slate-500">{{ a.rangoChofer }}</span>
+          }
+          {{ a.chofer }}
+        </span>
+        <span class="block font-mono text-xs text-slate-500">{{ a.choferCedula }}</span>
+      </ng-template>
+
+      <ng-template appCelda="destino" let-a>
+        @if (a.destino) {
+          <span class="block text-slate-900">{{ a.destino }}</span>
+        }
+        <span class="block max-w-64 truncate text-xs text-slate-500" [title]="a.proposito">
+          {{ a.proposito }}
+        </span>
+      </ng-template>
+
+      <ng-template appCelda="estatus" let-a>
+        <app-estado-badge [estado]="a.estatus" />
+        @if (a.motivoRechazoCancelacion) {
+          <span
+            class="mt-0.5 block max-w-48 text-xs text-slate-500"
+            [title]="a.motivoRechazoCancelacion"
+          >
+            {{ a.motivoRechazoCancelacion }}
+          </span>
+        }
+      </ng-template>
+    </app-tabla>
+
+    <app-paginador
+      [pagina]="pagina()"
+      [tamano]="tamano()"
+      [total]="total()"
+      (cambio)="paginar($event)"
+    />
+  </div>
+} @else {
+  <div class="tarjeta" role="tabpanel">
+    <app-estado-vacio
+      icono="construccion"
+      titulo="Sin entradas al taller"
+      mensaje="Aquí se mostrarán las solicitudes de taller del vehículo, con su mecánico, diagnóstico y piezas utilizadas, cuando se habilite el módulo de Taller."
+    />
+  </div>
+}

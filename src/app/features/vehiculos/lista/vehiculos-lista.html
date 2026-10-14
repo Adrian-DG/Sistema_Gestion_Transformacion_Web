@@ -65,6 +65,13 @@
 
     <ng-template appCelda="acciones" let-v>
       <a
+        [routerLink]="[v.id, 'historial']"
+        class="btn btn-texto btn-sm"
+        [attr.aria-label]="'Historial del vehículo ' + v.placa"
+      >
+        Historial
+      </a>
+      <a
         [routerLink]="[v.id, 'editar']"
         class="btn btn-texto btn-sm"
         [attr.aria-label]="'Editar vehículo ' + v.placa"

@@ -2,6 +2,7 @@ import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Paginado, SIN_AVISO_ERROR, api } from '../../core/api/api';
+import { AsignacionResumen, EstatusAsignacion } from '../asignaciones/asignaciones.service';
 
 /** Espejo de EstatusVehiculo del backend. NoDisponible: en misión; los demás los fija el taller. */
 export type EstatusVehiculo = 'Disponible' | 'NoDisponible' | 'EnMantenimiento' | 'Inactivo';
@@ -66,6 +67,12 @@ export interface FiltroVehiculos {
   busqueda: string;
 }
 
+export interface FiltroHistorial {
+  pagina: number;
+  tamano: number;
+  estatus: EstatusAsignacion | null;
+}
+
 /** Los formularios muestran los errores en sus campos, sin aviso global. */
 const SIN_AVISO = { context: new HttpContext().set(SIN_AVISO_ERROR, true) };
 
@@ -86,6 +93,15 @@ export class VehiculosService {
 
   crear(datos: DatosVehiculo): Observable<string> {
     return this.http.post<string>(api('vehiculos'), datos, SIN_AVISO);
+  }
+
+  /** Historial de asignaciones del vehículo, la de salida más reciente primero. */
+  asignaciones(id: string, filtro: FiltroHistorial): Observable<Paginado<AsignacionResumen>> {
+    let params = new HttpParams().set('pageNumber', filtro.pagina).set('pageSize', filtro.tamano);
+    if (filtro.estatus) params = params.set('estatus', filtro.estatus);
+    return this.http.get<Paginado<AsignacionResumen>>(api(`vehiculos/${id}/asignaciones`), {
+      params,
+    });
   }
 
   /** Solo los datos; el estatus lo cambia el taller. */
