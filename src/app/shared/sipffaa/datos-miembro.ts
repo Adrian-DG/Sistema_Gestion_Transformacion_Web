@@ -8,6 +8,7 @@ import {
 export function cargoDe(m: MiembroSipffaa): CargoSipffaa | null {
   return m.codCargo > 0 && m.cargo
     ? {
+        origen: m.origen,
         codCargo: m.codCargo,
         nombre: m.cargo,
         descripcion: m.descripcionCargo,
@@ -23,6 +24,7 @@ export function cargoDe(m: MiembroSipffaa): CargoSipffaa | null {
 export function departamentoDe(m: MiembroSipffaa): DepartamentoSipffaa | null {
   return m.codDepartamento > 0 && m.departamento
     ? {
+        origen: m.origen,
         codDepartamento: m.codDepartamento,
         nombre: m.departamento,
         descripcion: null,

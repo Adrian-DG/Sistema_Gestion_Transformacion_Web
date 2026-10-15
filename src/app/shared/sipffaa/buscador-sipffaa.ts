@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Observable, Subject, catchError, debounceTime, map, of, switchMap, tap } from 'rxjs';
+import { Observable, Subject, catchError, debounce, map, of, switchMap, tap, timer } from 'rxjs';
 import {
   CargoSipffaa,
   DepartamentoSipffaa,
@@ -26,7 +26,14 @@ interface Opcion {
   clave: string;
   titulo: string;
   detalle: string;
+  /** Ya registrado en el sistema (no consultado en SIPFFAA). */
+  registrado: boolean;
   valor: ElementoSipffaa;
+}
+
+interface Busqueda {
+  texto: string;
+  soloSipffaa: boolean;
 }
 
 const MINIMO_CARACTERES = 3;
@@ -54,9 +61,11 @@ export function etiquetaSipffaa(tipo: TipoBusquedaSipffaa, valor: ElementoSipffa
 }
 
 /**
- * Campo con autocompletado contra SIPFFAA para elegir un miembro (por nombre o cédula), un
- * departamento o un cargo. Funciona como control de formulario: su valor es el elemento elegido
- * (MiembroSipffaa, DepartamentoSipffaa o CargoSipffaa) o null. Escribir de nuevo descarta la elección.
+ * Campo con autocompletado para elegir un miembro (por nombre o cédula), un departamento o un cargo.
+ * Busca primero en el histórico del sistema y, si no hay coincidencias, en SIPFFAA; cuando los
+ * resultados vienen del histórico ofrece "Buscar en SIPFFAA" para ampliar. Funciona como control de
+ * formulario: su valor es el elemento elegido (MiembroSipffaa, DepartamentoSipffaa o CargoSipffaa) o
+ * null. Escribir de nuevo descarta la elección.
  *
  * ```html
  * <app-buscador-sipffaa tipo="miembro" idControl="solicitante" formControlName="solicitante" />
@@ -130,7 +139,17 @@ export function etiquetaSipffaa(tipo: TipoBusquedaSipffaa, valor: ElementoSipffa
             (mouseenter)="activa.set(i)"
             (click)="elegir(opcion)"
           >
-            <span class="block font-medium text-slate-900">{{ opcion.titulo }}</span>
+            <span class="flex items-center gap-2 font-medium text-slate-900">
+              {{ opcion.titulo }}
+              @if (opcion.registrado) {
+                <span
+                  class="rounded-full bg-slate-100 px-1.5 py-px text-[10px] font-medium text-slate-600 ring-1 ring-slate-500/20 ring-inset"
+                  title="Ya registrado en el sistema"
+                >
+                  Registrado
+                </span>
+              }
+            </span>
             @if (opcion.detalle) {
               <span class="block text-xs text-slate-500">{{ opcion.detalle }}</span>
             }
@@ -140,8 +159,23 @@ export function etiquetaSipffaa(tipo: TipoBusquedaSipffaa, valor: ElementoSipffa
             @if (error()) {
               No se pudo consultar SIPFFAA. Intente de nuevo.
             } @else {
-              Sin resultados para «{{ texto() }}».
+              Sin resultados{{ soloSipffaa() ? ' en SIPFFAA' : '' }} para «{{ texto() }}».
             }
+          </li>
+        }
+        @if (puedeAmpliar()) {
+          <li
+            [id]="idLista + '-' + opciones().length"
+            role="option"
+            [attr.aria-selected]="activa() === opciones().length"
+            class="flex cursor-pointer items-center gap-2 border-t border-slate-100 px-3 py-2 text-primario"
+            [class.bg-slate-100]="activa() === opciones().length"
+            (mousedown)="$event.preventDefault()"
+            (mouseenter)="activa.set(opciones().length)"
+            (click)="ampliar()"
+          >
+            <app-icono nombre="buscar" [tamano]="14" />
+            ¿No está en la lista? Buscar en SIPFFAA
           </li>
         }
       </ul>
@@ -167,6 +201,18 @@ export class BuscadorSipffaa implements ControlValueAccessor {
   protected readonly buscado = signal(false);
   protected readonly enfocado = signal(false);
   protected readonly deshabilitado = signal(false);
+  /** La última búsqueda omitió el histórico. */
+  protected readonly soloSipffaa = signal(false);
+
+  /** Los resultados vienen del histórico: se puede consultar SIPFFAA para ver más. */
+  protected readonly puedeAmpliar = computed(
+    () => !this.soloSipffaa() && !this.error() && this.opciones().some((o) => o.registrado),
+  );
+
+  /** Opciones más la entrada "Buscar en SIPFFAA", para la navegación con el teclado. */
+  private readonly totalNavegable = computed(
+    () => this.opciones().length + (this.puedeAmpliar() ? 1 : 0),
+  );
 
   /** La lista se muestra tras una búsqueda, mientras el campo tiene el foco y no hay elección. */
   protected readonly abierto = computed(
@@ -174,20 +220,22 @@ export class BuscadorSipffaa implements ControlValueAccessor {
   );
 
   private readonly campo = viewChild.required<ElementRef<HTMLInputElement>>('campo');
-  private readonly busquedas = new Subject<string>();
+  private readonly busquedas = new Subject<Busqueda>();
   private alCambiar: (valor: ElementoSipffaa | null) => void = () => {};
   private alTocar: () => void = () => {};
 
   constructor() {
     this.busquedas
       .pipe(
-        debounceTime(ESPERA_MS),
-        tap(() => {
-          this.cargando.set(true);
+        // "Buscar en SIPFFAA" es una acción explícita: no espera como la escritura.
+        debounce((b) => timer(b.soloSipffaa ? 0 : ESPERA_MS)),
+        tap((b) => {
+          this.cargando.set(!!b.texto);
           this.error.set(false);
+          this.soloSipffaa.set(b.soloSipffaa);
         }),
-        switchMap((texto) =>
-          this.consultar(texto).pipe(
+        switchMap((b) =>
+          this.consultar(b).pipe(
             catchError(() => {
               this.error.set(true);
               return of([] as Opcion[]);
@@ -233,14 +281,22 @@ export class BuscadorSipffaa implements ControlValueAccessor {
     if (termino.length < MINIMO_CARACTERES) {
       this.buscado.set(false);
       this.opciones.set([]);
-      this.busquedas.next('');
+      this.busquedas.next({ texto: '', soloSipffaa: false });
       return;
     }
-    this.busquedas.next(termino);
+    this.busquedas.next({ texto: termino, soloSipffaa: false });
+  }
+
+  /** Repite la búsqueda solo en SIPFFAA. */
+  protected ampliar(): void {
+    const termino = this.texto().trim();
+    if (termino.length >= MINIMO_CARACTERES) {
+      this.busquedas.next({ texto: termino, soloSipffaa: true });
+    }
   }
 
   protected teclado(evento: KeyboardEvent): void {
-    const total = this.opciones().length;
+    const total = this.totalNavegable();
     switch (evento.key) {
       case 'ArrowDown':
         if (!this.abierto() || total === 0) return;
@@ -255,7 +311,8 @@ export class BuscadorSipffaa implements ControlValueAccessor {
       case 'Enter':
         if (this.abierto() && this.activa() >= 0) {
           evento.preventDefault();
-          this.elegir(this.opciones()[this.activa()]);
+          if (this.activa() < this.opciones().length) this.elegir(this.opciones()[this.activa()]);
+          else this.ampliar();
         }
         break;
       case 'Escape':
@@ -293,16 +350,17 @@ export class BuscadorSipffaa implements ControlValueAccessor {
   }
 
   /** Una búsqueda vacía (texto corto) cancela la anterior sin consultar. */
-  private consultar(texto: string): Observable<Opcion[]> {
+  private consultar({ texto, soloSipffaa }: Busqueda): Observable<Opcion[]> {
     if (!texto) return of([]);
     const maximo = this.maximo();
 
     switch (this.tipo()) {
       case 'miembro':
-        return this.sipffaa.buscarMiembros(texto, maximo).pipe(
+        return this.sipffaa.buscarMiembros(texto, maximo, soloSipffaa).pipe(
           map((miembros) =>
             miembros.map((m) => ({
-              clave: `${m.codMiembro}`,
+              clave: m.cedula,
+              registrado: m.origen === 'Historico',
               titulo: `${m.rangoAbreviado ? m.rangoAbreviado + ' ' : ''}${m.nombreCompleto}`,
               detalle: [m.cedula, m.cargo, m.departamento].filter(Boolean).join(' · '),
               valor: m,
@@ -310,28 +368,38 @@ export class BuscadorSipffaa implements ControlValueAccessor {
           ),
         );
       case 'departamento':
-        return this.sipffaa.buscarDepartamentos(texto, maximo).pipe(
+        return this.sipffaa.buscarDepartamentos(texto, maximo, soloSipffaa).pipe(
           map((departamentos) =>
             departamentos.map((d) => ({
               clave: `${d.codDepartamento}`,
+              registrado: d.origen === 'Historico',
               titulo: d.nombre,
-              detalle: d.departamentoPadre ? `Pertenece a: ${d.departamentoPadre}` : (d.descripcion ?? ''),
+              detalle: d.departamentoPadre
+                ? `Pertenece a: ${d.departamentoPadre}`
+                : (d.descripcion ?? ''),
               valor: d,
             })),
           ),
         );
       case 'cargo':
-        return this.sipffaa.buscarCargos(texto, maximo).pipe(
+        return this.sipffaa.buscarCargos(texto, maximo, soloSipffaa).pipe(
           map((cargos) =>
             cargos.map((c) => ({
               clave: `${c.codCargo}`,
+              registrado: c.origen === 'Historico',
               titulo: c.nombre,
+              // Los del histórico no traen ocupantes: no se sabe si está vacante.
               detalle:
-                c.cantidadOcupantes === 0
-                  ? 'Vacante'
-                  : c.cantidadOcupantes === 1
-                    ? `Ocupado por ${c.ocupantes[0]?.rango ?? ''} ${c.ocupantes[0]?.nombreCompleto ?? ''}`.replace(/\s+/g, ' ')
-                    : `${c.cantidadOcupantes} ocupantes`,
+                c.origen === 'Historico'
+                  ? ''
+                  : c.cantidadOcupantes === 0
+                    ? 'Vacante'
+                    : c.cantidadOcupantes === 1
+                      ? `Ocupado por ${c.ocupantes[0]?.rango ?? ''} ${c.ocupantes[0]?.nombreCompleto ?? ''}`.replace(
+                          /\s+/g,
+                          ' ',
+                        )
+                      : `${c.cantidadOcupantes} ocupantes`,
               valor: c,
             })),
           ),
