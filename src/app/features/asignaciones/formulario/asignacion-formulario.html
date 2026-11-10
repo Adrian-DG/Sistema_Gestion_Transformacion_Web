@@ -53,39 +53,108 @@
     <header class="border-b border-slate-200 px-5 py-3">
       <h2 id="sec-solicitante" class="font-semibold text-slate-900">Quién solicita</h2>
       <p class="text-xs text-slate-500">
-        Búsqueda en SIPFFAA. El cargo y el departamento se toman del miembro; puede cambiarlos.
+        Busque a la persona por cédula o nombre, o el cargo que solicita y elija a quien lo ocupa.
+        El cargo y el departamento se toman de SIPFFAA; puede cambiarlos.
       </p>
     </header>
     <div class="grid gap-5 p-5 sm:grid-cols-2">
-      <app-campo
-        etiqueta="Solicitante"
-        para="solicitante"
-        [control]="formulario.controls.solicitante"
-        class="sm:col-span-2"
-        requerido
-      >
-        <app-buscador-sipffaa
-          tipo="miembro"
-          idControl="solicitante"
-          formControlName="solicitante"
-        />
-        <ng-container
-          [ngTemplateOutlet]="fichaMiembro"
-          [ngTemplateOutletContext]="{ $implicit: v().solicitante }"
-        />
-      </app-campo>
-      <app-campo
-        etiqueta="Cargo del solicitante"
-        para="cargoSolicitante"
-        [control]="formulario.controls.cargoSolicitante"
-        requerido
-      >
-        <app-buscador-sipffaa
-          tipo="cargo"
-          idControl="cargoSolicitante"
-          formControlName="cargoSolicitante"
-        />
-      </app-campo>
+      <fieldset class="sm:col-span-2">
+        <legend class="mb-2 text-sm font-medium text-slate-700">Solicitar por</legend>
+        <div class="flex flex-wrap gap-4 text-sm">
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="solicitarPor"
+              value="persona"
+            />
+            Persona (cédula o nombre)
+          </label>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              class="accent-primario"
+              formControlName="solicitarPor"
+              value="cargo"
+            />
+            Cargo
+          </label>
+        </div>
+      </fieldset>
+
+      @if (v().solicitarPor === 'cargo') {
+        <app-campo
+          etiqueta="Cargo que solicita"
+          para="cargoSolicitante"
+          [control]="formulario.controls.cargoSolicitante"
+          class="sm:col-span-2"
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="cargo"
+            idControl="cargoSolicitante"
+            formControlName="cargoSolicitante"
+          />
+          @if (v().cargoSolicitante; as cargo) {
+            <app-ocupantes-cargo
+              class="mt-2"
+              [cargo]="cargo"
+              [cedulaSeleccionada]="v().solicitante?.cedula ?? null"
+              [elegirUnico]="true"
+              (elegido)="formulario.controls.solicitante.setValue($event)"
+            />
+          }
+        </app-campo>
+        <app-campo
+          etiqueta="Persona que firma en nombre del cargo"
+          para="solicitante"
+          [control]="formulario.controls.solicitante"
+          class="sm:col-span-2"
+          ayuda="Elija un ocupante del cargo o busque por cédula o nombre (ej. un encargado interino)."
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="miembro"
+            idControl="solicitante"
+            formControlName="solicitante"
+          />
+          <ng-container
+            [ngTemplateOutlet]="fichaMiembro"
+            [ngTemplateOutletContext]="{ $implicit: v().solicitante }"
+          />
+        </app-campo>
+      } @else {
+        <app-campo
+          etiqueta="Solicitante"
+          para="solicitante"
+          [control]="formulario.controls.solicitante"
+          class="sm:col-span-2"
+          ayuda="Escriba la cédula (con o sin guiones) o el nombre."
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="miembro"
+            idControl="solicitante"
+            formControlName="solicitante"
+          />
+          <ng-container
+            [ngTemplateOutlet]="fichaMiembro"
+            [ngTemplateOutletContext]="{ $implicit: v().solicitante }"
+          />
+        </app-campo>
+        <app-campo
+          etiqueta="Cargo del solicitante"
+          para="cargoSolicitante"
+          [control]="formulario.controls.cargoSolicitante"
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="cargo"
+            idControl="cargoSolicitante"
+            formControlName="cargoSolicitante"
+          />
+        </app-campo>
+      }
       <app-campo
         etiqueta="Departamento que solicita"
         para="departamento"
@@ -131,6 +200,33 @@
         </div>
       </fieldset>
 
+      @if (v().tipoAsignacion === tipos.Cargo) {
+        <app-campo
+          etiqueta="Cargo al que se asigna"
+          para="cargoAsignado"
+          [control]="formulario.controls.cargoAsignado"
+          class="sm:col-span-2"
+          requerido
+        >
+          <app-buscador-sipffaa
+            tipo="cargo"
+            idControl="cargoAsignado"
+            formControlName="cargoAsignado"
+          />
+          @if (v().cargoAsignado; as cargo) {
+            @if (!v().mismoSolicitante) {
+              <app-ocupantes-cargo
+                class="mt-2"
+                [cargo]="cargo"
+                [cedulaSeleccionada]="v().asignado?.cedula ?? null"
+                [elegirUnico]="true"
+                (elegido)="formulario.controls.asignado.setValue($event)"
+              />
+            }
+          }
+        </app-campo>
+      }
+
       <div class="sm:col-span-2">
         <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
           <input
@@ -154,22 +250,6 @@
           <ng-container
             [ngTemplateOutlet]="fichaMiembro"
             [ngTemplateOutletContext]="{ $implicit: v().asignado }"
-          />
-        </app-campo>
-      }
-
-      @if (v().tipoAsignacion === tipos.Cargo) {
-        <app-campo
-          etiqueta="Cargo al que se asigna"
-          para="cargoAsignado"
-          [control]="formulario.controls.cargoAsignado"
-          class="sm:col-span-2"
-          requerido
-        >
-          <app-buscador-sipffaa
-            tipo="cargo"
-            idControl="cargoAsignado"
-            formControlName="cargoAsignado"
           />
         </app-campo>
       }

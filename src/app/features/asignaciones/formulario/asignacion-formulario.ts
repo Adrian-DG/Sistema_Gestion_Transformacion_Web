@@ -40,6 +40,7 @@ import { Campo } from '../../../shared/formularios/campo';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
 import { ArchivoSeleccionado, SelectorArchivo } from '../../../shared/formularios/selector-archivo';
 import { BuscadorSipffaa } from '../../../shared/sipffaa/buscador-sipffaa';
+import { OcupantesCargo } from '../../../shared/sipffaa/ocupantes-cargo';
 import { cargoDe, departamentoDe } from '../../../shared/sipffaa/datos-miembro';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
@@ -83,6 +84,7 @@ const posteriorASalida: ValidatorFn = (control) => {
     Icono,
     SelectorArchivo,
     BuscadorSipffaa,
+    OcupantesCargo,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './asignacion-formulario.html',
@@ -99,6 +101,9 @@ export class AsignacionFormulario {
   protected readonly tipos = TIPO_ASIGNACION;
 
   protected readonly formulario = this.fb.group({
+    // La solicitud se busca por la persona (cédula o nombre) o por el cargo que solicita;
+    // en ambos casos queda registrada la persona que firma y el cargo.
+    solicitarPor: this.fb.control<'persona' | 'cargo'>('persona'),
     solicitante: this.fb.control<MiembroSipffaa | null>(null, Validators.required),
     cargoSolicitante: this.fb.control<CargoSipffaa | null>(null, Validators.required),
     departamento: this.fb.control<DepartamentoSipffaa | null>(null, Validators.required),
@@ -165,9 +170,12 @@ export class AsignacionFormulario {
       });
 
     // Al elegir el solicitante se proponen su cargo y departamento de SIPFFAA (se pueden cambiar).
+    // Si se solicita por cargo, el cargo ya está elegido y se conserva.
     c.solicitante.valueChanges.pipe(takeUntilDestroyed()).subscribe((miembro) => {
       if (!miembro) return;
-      c.cargoSolicitante.setValue(cargoDe(miembro));
+      if (c.solicitarPor.value !== 'cargo' || !c.cargoSolicitante.value) {
+        c.cargoSolicitante.setValue(cargoDe(miembro));
+      }
       c.departamento.setValue(departamentoDe(miembro));
     });
 
