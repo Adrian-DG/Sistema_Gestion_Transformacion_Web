@@ -3,9 +3,11 @@
   titulo="Asignaciones"
   descripcion="Solicitudes de vehículos: aprobación, salida y retorno. Ninguna se elimina; se rechazan o cancelan con un motivo."
 >
-  <a routerLink="nueva" class="btn btn-primario">
-    <app-icono nombre="mas" [tamano]="18" /> Nueva asignación
-  </a>
+  @if (puedeGestionar()) {
+    <a routerLink="nueva" class="btn btn-primario">
+      <app-icono nombre="mas" [tamano]="18" /> Nueva asignación
+    </a>
+  }
 </app-encabezado-pagina>
 
 <div class="tarjeta overflow-hidden">
@@ -66,7 +68,9 @@
         }
         {{ a.solicitante }}
       </span>
-      <span class="block text-xs text-slate-500">{{ a.cargoSolicitante }} · {{ a.dependenciaSolicitante }}</span>
+      <span class="block text-xs text-slate-500"
+        >{{ a.cargoSolicitante }} · {{ a.dependenciaSolicitante }}</span
+      >
     </ng-template>
 
     <ng-template appCelda="chofer" let-a>
@@ -97,7 +101,10 @@
         <span class="mt-0.5 block text-xs font-medium text-red-700">Retorno vencido</span>
       }
       @if (a.motivoRechazoCancelacion) {
-        <span class="mt-0.5 block max-w-48 text-xs text-slate-500" [title]="a.motivoRechazoCancelacion">
+        <span
+          class="mt-0.5 block max-w-48 text-xs text-slate-500"
+          [title]="a.motivoRechazoCancelacion"
+        >
           {{ a.motivoRechazoCancelacion }}
         </span>
       }
@@ -105,7 +112,7 @@
 
     <ng-template appCelda="acciones" let-a>
       <div class="flex flex-wrap justify-end gap-1">
-        @if (a.estatus === 'Pendiente') {
+        @if (a.estatus === 'Pendiente' && puedeAprobar()) {
           <button
             type="button"
             class="btn btn-texto btn-sm !text-emerald-700"
@@ -123,7 +130,7 @@
             Rechazar
           </button>
         }
-        @if (a.estatus === 'Aprobada') {
+        @if (a.estatus === 'Aprobada' && puedeGestionar()) {
           <button
             type="button"
             class="btn btn-texto btn-sm"
@@ -133,7 +140,7 @@
             Registrar retorno
           </button>
         }
-        @if (a.estatus === 'Pendiente' || a.estatus === 'Aprobada') {
+        @if ((a.estatus === 'Pendiente' || a.estatus === 'Aprobada') && puedeGestionar()) {
           <button
             type="button"
             class="btn btn-texto btn-sm"

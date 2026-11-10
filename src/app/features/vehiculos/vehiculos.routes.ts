@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { permisoGuard } from '../../core/auth/auth.guards';
+import { Permiso } from '../../core/auth/permisos';
 
 export const VEHICULOS_ROUTES: Routes = [
   {
@@ -8,6 +10,8 @@ export const VEHICULOS_ROUTES: Routes = [
   },
   {
     path: 'nuevo',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionVehiculos] },
     title: 'Nuevo vehículo',
     loadComponent: () =>
       import('./formulario/vehiculo-formulario').then((m) => m.VehiculoFormulario),
@@ -19,6 +23,8 @@ export const VEHICULOS_ROUTES: Routes = [
   },
   {
     path: ':id/editar',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.GestionVehiculos] },
     title: 'Editar vehículo',
     loadComponent: () =>
       import('./formulario/vehiculo-formulario').then((m) => m.VehiculoFormulario),

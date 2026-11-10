@@ -11,6 +11,8 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, of, switchMap, tap } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
+import { Permiso } from '../../../core/auth/permisos';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
@@ -32,6 +34,8 @@ const ESPERA_BUSQUEDA_MS = 350;
 export class PolizasLista {
   private readonly polizas = inject(PolizasService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  protected readonly puedeGestionar = computed(() => this.auth.tiene(Permiso.GestionPolizas));
 
   // Parámetros de la URL (withComponentInputBinding).
   readonly pagina = input(1, { transform: (v: unknown) => Math.max(1, numberAttribute(v, 1)) });

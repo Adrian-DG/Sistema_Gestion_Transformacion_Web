@@ -3,9 +3,11 @@
   titulo="Vehículos"
   descripcion="Flota de la institución. Los vehículos no se eliminan: la baja, que se hace en el taller, los deja inactivos."
 >
-  <a routerLink="nuevo" class="btn btn-primario">
-    <app-icono nombre="mas" [tamano]="18" /> Nuevo vehículo
-  </a>
+  @if (puedeGestionar()) {
+    <a routerLink="nuevo" class="btn btn-primario">
+      <app-icono nombre="mas" [tamano]="18" /> Nuevo vehículo
+    </a>
+  }
 </app-encabezado-pagina>
 
 <div class="tarjeta overflow-hidden">
@@ -37,7 +39,7 @@
   >
     <ng-template appCelda="placa" let-v>
       <a
-        [routerLink]="[v.id, 'editar']"
+        [routerLink]="[v.id, puedeGestionar() ? 'editar' : 'historial']"
         class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
         >{{ v.placa }}</a
       >
@@ -79,13 +81,15 @@
       >
         Historial
       </a>
-      <a
-        [routerLink]="[v.id, 'editar']"
-        class="btn btn-texto btn-sm"
-        [attr.aria-label]="'Editar vehículo ' + v.placa"
-      >
-        Editar
-      </a>
+      @if (puedeGestionar()) {
+        <a
+          [routerLink]="[v.id, 'editar']"
+          class="btn btn-texto btn-sm"
+          [attr.aria-label]="'Editar vehículo ' + v.placa"
+        >
+          Editar
+        </a>
+      }
     </ng-template>
   </app-tabla>
 

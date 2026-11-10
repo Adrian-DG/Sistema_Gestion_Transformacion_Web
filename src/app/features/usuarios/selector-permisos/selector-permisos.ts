@@ -13,6 +13,10 @@ export const NOMBRES_PERMISO: Record<string, string> = {
   [Permiso.GestionTaller]: 'Taller',
   [Permiso.GestionInventarioPiezas]: 'Inventario de piezas',
   [Permiso.ReactivarVehiculos]: 'Reactivar vehículos',
+  [Permiso.AprobarAsignaciones]: 'Aprobar asignaciones',
+  [Permiso.AprobarTickets]: 'Aprobar tickets de combustible',
+  [Permiso.DespachoCombustible]: 'Despacho de combustible',
+  [Permiso.Consulta]: 'Consulta (solo lectura)',
 };
 
 export const nombrePermiso = (permiso: string): string => NOMBRES_PERMISO[permiso] ?? permiso;

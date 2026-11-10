@@ -105,6 +105,7 @@ export class VehiculoHistorial {
   ];
 
   protected readonly puedeEnviarATaller = computed(() => this.auth.tiene(Permiso.GestionTaller));
+  protected readonly puedeEditar = computed(() => this.auth.tiene(Permiso.GestionVehiculos));
   protected readonly puedeReactivar = computed(() => this.auth.tiene(Permiso.ReactivarVehiculos));
 
   private readonly recarga = signal(0);

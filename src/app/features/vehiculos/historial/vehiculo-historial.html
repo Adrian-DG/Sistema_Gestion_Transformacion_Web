@@ -19,7 +19,9 @@
 >
   <a routerLink="/vehiculos" class="btn btn-contorno">Volver</a>
   @if (v) {
-    <a [routerLink]="['/vehiculos', v.id, 'editar']" class="btn btn-contorno">Editar</a>
+    @if (puedeEditar()) {
+      <a [routerLink]="['/vehiculos', v.id, 'editar']" class="btn btn-contorno">Editar</a>
+    }
     @if (v.estatus === 'Inactivo') {
       @if (puedeReactivar()) {
         <button

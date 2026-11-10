@@ -11,6 +11,8 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, catchError, firstValueFrom, of, switchMap, tap } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
+import { Permiso } from '../../../core/auth/permisos';
 import { esApiError } from '../../../core/api/api';
 import { DialogosService } from '../../../core/dialogos/dialogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
@@ -50,6 +52,9 @@ export class AsignacionesLista {
   private readonly dialogos = inject(DialogosService);
   private readonly notificaciones = inject(NotificacionesService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  protected readonly puedeGestionar = computed(() => this.auth.tiene(Permiso.GestionAsignaciones));
+  protected readonly puedeAprobar = computed(() => this.auth.tiene(Permiso.AprobarAsignaciones));
 
   // Parámetros de la URL (withComponentInputBinding).
   readonly pagina = input(1, { transform: (v: unknown) => Math.max(1, numberAttribute(v, 1)) });
@@ -58,7 +63,8 @@ export class AsignacionesLista {
   });
   readonly q = input('', { transform: (v: string | undefined) => v ?? '' });
   readonly estatus = input<EstatusAsignacion | null, string | undefined>(null, {
-    transform: (v) => (ESTATUS_ASIGNACION.includes(v as EstatusAsignacion) ? (v as EstatusAsignacion) : null),
+    transform: (v) =>
+      ESTATUS_ASIGNACION.includes(v as EstatusAsignacion) ? (v as EstatusAsignacion) : null,
   });
 
   protected readonly estados = ESTATUS_ASIGNACION;
@@ -133,7 +139,8 @@ export class AsignacionesLista {
   protected async cancelar(a: AsignacionResumen): Promise<void> {
     const motivo = await this.dialogos.solicitarMotivo({
       titulo: 'Cancelar asignación',
-      mensaje: 'Use esta opción para anular una asignación registrada por error. Quedará en el historial como cancelada.',
+      mensaje:
+        'Use esta opción para anular una asignación registrada por error. Quedará en el historial como cancelada.',
       textoConfirmar: 'Cancelar asignación',
       textoCancelar: 'Volver',
       tipo: 'peligro',
@@ -175,7 +182,11 @@ export class AsignacionesLista {
     this.navegar({ pagina: pagina > 1 ? pagina : null, tamano: tamano !== 20 ? tamano : null });
   }
 
-  private async ejecutar(a: AsignacionResumen, accion: Observable<void>, mensaje: string): Promise<void> {
+  private async ejecutar(
+    a: AsignacionResumen,
+    accion: Observable<void>,
+    mensaje: string,
+  ): Promise<void> {
     this.procesando.set(a.id);
     try {
       await firstValueFrom(accion);

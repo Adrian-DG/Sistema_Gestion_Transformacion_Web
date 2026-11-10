@@ -3,9 +3,11 @@
   titulo="Pólizas"
   descripcion="Seguros de los vehículos. Las pólizas no se eliminan: al renovar se registra una nueva y la anterior queda en el historial."
 >
-  <a routerLink="nueva" class="btn btn-primario">
-    <app-icono nombre="mas" [tamano]="18" /> Nueva póliza
-  </a>
+  @if (puedeGestionar()) {
+    <a routerLink="nueva" class="btn btn-primario">
+      <app-icono nombre="mas" [tamano]="18" /> Nueva póliza
+    </a>
+  }
 </app-encabezado-pagina>
 
 <div class="tarjeta overflow-hidden">
@@ -34,11 +36,15 @@
     [mensajeVacio]="q() ? 'Ninguna póliza coincide con la búsqueda' : 'No hay pólizas registradas'"
   >
     <ng-template appCelda="numero" let-p>
-      <a
-        [routerLink]="[p.id, 'editar']"
-        class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
-        >{{ p.numeroPoliza }}</a
-      >
+      @if (puedeGestionar()) {
+        <a
+          [routerLink]="[p.id, 'editar']"
+          class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
+          >{{ p.numeroPoliza }}</a
+        >
+      } @else {
+        <span class="font-mono font-semibold text-slate-900">{{ p.numeroPoliza }}</span>
+      }
       <span class="block text-xs text-slate-500">{{ p.aseguradora }}</span>
     </ng-template>
 
@@ -59,23 +65,25 @@
     </ng-template>
 
     <ng-template appCelda="acciones" let-p>
-      <div class="flex justify-end gap-1">
-        <a
-          routerLink="nueva"
-          [queryParams]="{ renovar: p.id }"
-          class="btn btn-texto btn-sm"
-          [attr.aria-label]="'Renovar póliza ' + p.numeroPoliza"
-        >
-          Renovar
-        </a>
-        <a
-          [routerLink]="[p.id, 'editar']"
-          class="btn btn-texto btn-sm"
-          [attr.aria-label]="'Editar póliza ' + p.numeroPoliza"
-        >
-          Editar
-        </a>
-      </div>
+      @if (puedeGestionar()) {
+        <div class="flex justify-end gap-1">
+          <a
+            routerLink="nueva"
+            [queryParams]="{ renovar: p.id }"
+            class="btn btn-texto btn-sm"
+            [attr.aria-label]="'Renovar póliza ' + p.numeroPoliza"
+          >
+            Renovar
+          </a>
+          <a
+            [routerLink]="[p.id, 'editar']"
+            class="btn btn-texto btn-sm"
+            [attr.aria-label]="'Editar póliza ' + p.numeroPoliza"
+          >
+            Editar
+          </a>
+        </div>
+      }
     </ng-template>
   </app-tabla>
 

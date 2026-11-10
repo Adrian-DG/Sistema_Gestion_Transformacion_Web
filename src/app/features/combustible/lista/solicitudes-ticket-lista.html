@@ -3,12 +3,14 @@
   titulo="Combustible"
   descripcion="Asignación de combustible mediante tickets numerados. Ninguna solicitud se elimina; se rechaza o cancela con un motivo."
 >
-  <a routerLink="entrada" class="btn btn-contorno">
-    <app-icono nombre="combustible" [tamano]="18" /> Registrar entrada
-  </a>
-  <a routerLink="nueva" class="btn btn-primario">
-    <app-icono nombre="mas" [tamano]="18" /> Nueva solicitud de tickets
-  </a>
+  @if (puedeGestionar()) {
+    <a routerLink="entrada" class="btn btn-contorno">
+      <app-icono nombre="combustible" [tamano]="18" /> Registrar entrada
+    </a>
+    <a routerLink="nueva" class="btn btn-primario">
+      <app-icono nombre="mas" [tamano]="18" /> Nueva solicitud de tickets
+    </a>
+  }
 </app-encabezado-pagina>
 
 <!-- Existencia por tipo de combustible -->
@@ -144,7 +146,7 @@
 
     <ng-template appCelda="acciones" let-s>
       <div class="flex flex-wrap justify-end gap-1">
-        @if (s.estatus === 'Pendiente') {
+        @if (s.estatus === 'Pendiente' && puedeAprobar()) {
           <button
             type="button"
             class="btn btn-texto btn-sm !text-emerald-700"
@@ -162,7 +164,11 @@
             Rechazar
           </button>
         }
-        @if ((s.estatus === 'Pendiente' || s.estatus === 'Aprobada') && utilizados(s) === 0) {
+        @if (
+          (s.estatus === 'Pendiente' || s.estatus === 'Aprobada') &&
+          utilizados(s) === 0 &&
+          puedeGestionar()
+        ) {
           <button
             type="button"
             class="btn btn-texto btn-sm"

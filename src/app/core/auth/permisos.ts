@@ -10,6 +10,11 @@ export enum Permiso {
   GestionTaller = 'GestionTaller',
   GestionInventarioPiezas = 'GestionInventarioPiezas',
   ReactivarVehiculos = 'ReactivarVehiculos',
+  AprobarAsignaciones = 'AprobarAsignaciones',
+  AprobarTickets = 'AprobarTickets',
+  DespachoCombustible = 'DespachoCombustible',
+  /** Solo lectura de listados y reportes. */
+  Consulta = 'Consulta',
 }
 
 /**

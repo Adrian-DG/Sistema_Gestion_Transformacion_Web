@@ -11,6 +11,8 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, catchError, firstValueFrom, of, switchMap, tap } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
+import { Permiso } from '../../../core/auth/permisos';
 import { esApiError } from '../../../core/api/api';
 import { DialogosService } from '../../../core/dialogos/dialogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
@@ -56,6 +58,9 @@ export class SolicitudesTicketLista {
   private readonly dialogos = inject(DialogosService);
   private readonly notificaciones = inject(NotificacionesService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  protected readonly puedeGestionar = computed(() => this.auth.tiene(Permiso.GestionCombustible));
+  protected readonly puedeAprobar = computed(() => this.auth.tiene(Permiso.AprobarTickets));
 
   // Parámetros de la URL (withComponentInputBinding).
   readonly pagina = input(1, { transform: (v: unknown) => Math.max(1, numberAttribute(v, 1)) });
@@ -149,7 +154,11 @@ export class SolicitudesTicketLista {
       textoConfirmar: 'Aprobar',
     });
     if (confirmado) {
-      await this.ejecutar(s, this.combustible.aprobar(s.id), 'Solicitud aprobada. Los tickets están disponibles.');
+      await this.ejecutar(
+        s,
+        this.combustible.aprobar(s.id),
+        'Solicitud aprobada. Los tickets están disponibles.',
+      );
     }
   }
 
@@ -197,7 +206,11 @@ export class SolicitudesTicketLista {
     this.navegar({ pagina: pagina > 1 ? pagina : null, tamano: tamano !== 20 ? tamano : null });
   }
 
-  private async ejecutar(s: SolicitudTicketResumen, accion: Observable<void>, mensaje: string): Promise<void> {
+  private async ejecutar(
+    s: SolicitudTicketResumen,
+    accion: Observable<void>,
+    mensaje: string,
+  ): Promise<void> {
     this.procesando.set(s.id);
     try {
       await firstValueFrom(accion);

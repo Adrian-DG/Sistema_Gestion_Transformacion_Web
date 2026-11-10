@@ -15,14 +15,23 @@ const modulos: Routes = [
   {
     path: 'asignaciones',
     canActivate: [permisoGuard],
-    data: { permisos: [Permiso.GestionAsignaciones] },
+    data: {
+      permisos: [Permiso.GestionAsignaciones, Permiso.AprobarAsignaciones, Permiso.Consulta],
+    },
     loadChildren: () =>
       import('./features/asignaciones/asignaciones.routes').then((m) => m.ASIGNACIONES_ROUTES),
   },
   {
     path: 'combustible',
     canActivate: [permisoGuard],
-    data: { permisos: [Permiso.GestionCombustible] },
+    data: {
+      permisos: [
+        Permiso.GestionCombustible,
+        Permiso.AprobarTickets,
+        Permiso.DespachoCombustible,
+        Permiso.Consulta,
+      ],
+    },
     loadChildren: () =>
       import('./features/combustible/combustible.routes').then((m) => m.COMBUSTIBLE_ROUTES),
   },
@@ -36,14 +45,14 @@ const modulos: Routes = [
   {
     path: 'vehiculos',
     canActivate: [permisoGuard],
-    data: { permisos: [Permiso.GestionVehiculos] },
+    data: { permisos: [Permiso.GestionVehiculos, Permiso.Consulta] },
     loadChildren: () =>
       import('./features/vehiculos/vehiculos.routes').then((m) => m.VEHICULOS_ROUTES),
   },
   {
     path: 'polizas',
     canActivate: [permisoGuard],
-    data: { permisos: [Permiso.GestionPolizas] },
+    data: { permisos: [Permiso.GestionPolizas, Permiso.Consulta] },
     loadChildren: () => import('./features/polizas/polizas.routes').then((m) => m.POLIZAS_ROUTES),
   },
   {
