@@ -151,6 +151,27 @@ export class AsignacionesLista {
     }
   }
 
+  protected readonly descargando = signal<string | null>(null);
+
+  /** Descarga el PDF de la asignación. */
+  protected async descargarConstancia(a: AsignacionResumen): Promise<void> {
+    this.descargando.set(a.id);
+    try {
+      const pdf = await firstValueFrom(this.asignaciones.constancia(a.id));
+      const url = URL.createObjectURL(pdf);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `Asignacion_${a.placa}.pdf`;
+      enlace.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      // El interceptor ya mostró el aviso.
+      if (!esApiError(e)) throw e;
+    } finally {
+      this.descargando.set(null);
+    }
+  }
+
   protected async registrarRetorno(a: AsignacionResumen): Promise<void> {
     const confirmado = await this.dialogos.confirmar({
       titulo: 'Registrar retorno',

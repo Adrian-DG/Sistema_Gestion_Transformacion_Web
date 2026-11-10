@@ -112,6 +112,20 @@
 
     <ng-template appCelda="acciones" let-a>
       <div class="flex flex-wrap justify-end gap-1">
+        <button
+          type="button"
+          class="btn btn-texto btn-sm"
+          [disabled]="descargando() === a.id"
+          (click)="descargarConstancia(a)"
+          [attr.aria-label]="'Descargar PDF de la asignación del vehículo ' + a.placa"
+          [title]="
+            a.estatus === 'Aprobada' || a.estatus === 'Finalizada'
+              ? 'Constancia de asignación'
+              : 'PDF de la solicitud (no es una constancia válida hasta su aprobación)'
+          "
+        >
+          <app-icono nombre="archivo" [tamano]="16" /> PDF
+        </button>
         @if (a.estatus === 'Pendiente' && puedeAprobar()) {
           <button
             type="button"

@@ -124,4 +124,9 @@ export class AsignacionesService {
   registrarRetorno(id: string, fechaRetorno: string): Observable<void> {
     return this.http.post<void>(api(`asignaciones/${id}/retorno`), { fechaRetorno });
   }
+
+  /** PDF de la asignación (constancia con el encabezado y el logo de la organización). */
+  constancia(id: string): Observable<Blob> {
+    return this.http.get(api(`asignaciones/${id}/constancia`), { responseType: 'blob' });
+  }
 }
