@@ -3,6 +3,21 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, shareReplay, throwError } from 'rxjs';
 import { api } from '../api/api';
 
+/**
+ * Flujos que reciben documentos (espejo de TiposOperacion del backend). Cada uno solo admite ciertos
+ * tipos de documento.
+ */
+export const TIPOS_OPERACION = {
+  Vehiculo: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a01',
+  Asignacion: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a02',
+  SolicitudTicket: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a03',
+  MovimientoCombustible: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a04',
+  EntradaPieza: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a05',
+  CompraPieza: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a06',
+  SolicitudTaller: '6f1f1d2a-3c1e-4b7a-9a51-0b7c2d9e1a07',
+} as const;
+export type TipoOperacion = (typeof TIPOS_OPERACION)[keyof typeof TIPOS_OPERACION];
+
 export interface ElementoCatalogo {
   id: string;
   nombre: string;
@@ -50,8 +65,9 @@ export class CatalogosService {
     return this.cacheado<ElementoCatalogo[]>('aseguradoras');
   }
 
-  tiposDocumento(): Observable<ElementoCatalogo[]> {
-    return this.cacheado<ElementoCatalogo[]>('tipos-documento');
+  /** Tipos de documento permitidos en el flujo indicado. */
+  tiposDocumento(operacion: TipoOperacion): Observable<ElementoCatalogo[]> {
+    return this.cacheado<ElementoCatalogo[]>(`tipos-documento?operacion=${operacion}`);
   }
 
   /** Vehículos para listas de selección; nombre: "Placa · Marca Modelo (año)". */

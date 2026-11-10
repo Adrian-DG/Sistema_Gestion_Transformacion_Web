@@ -14,7 +14,7 @@ import { Router, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, of, startWith } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Permiso } from '../../../core/auth/permisos';
-import { CatalogosService } from '../../../core/catalogos/catalogos.service';
+import { CatalogosService, TIPOS_OPERACION } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
@@ -91,7 +91,9 @@ export class EntradaCombustible {
   });
 
   protected readonly tiposDocumento = toSignal(
-    this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
+    this.catalogos
+      .tiposDocumento(TIPOS_OPERACION.MovimientoCombustible)
+      .pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
   /** null mientras carga; 'error' si no se pudieron consultar. */
@@ -146,7 +148,7 @@ export class EntradaCombustible {
   constructor() {
     // El primer adjunto se crea antes de que llegue el catálogo: se propone "Factura".
     this.catalogos
-      .tiposDocumento()
+      .tiposDocumento(TIPOS_OPERACION.MovimientoCombustible)
       .pipe(
         catchError(() => of([])),
         takeUntilDestroyed(),

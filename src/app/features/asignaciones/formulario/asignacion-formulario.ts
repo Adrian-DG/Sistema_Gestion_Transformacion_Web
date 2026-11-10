@@ -24,7 +24,11 @@ import {
   tap,
 } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
-import { CatalogosService, ElementoCatalogo } from '../../../core/catalogos/catalogos.service';
+import {
+  CatalogosService,
+  ElementoCatalogo,
+  TIPOS_OPERACION,
+} from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import {
   CargoSipffaa,
@@ -34,10 +38,7 @@ import {
 } from '../../../core/sipffaa/sipffaa.service';
 import { Campo } from '../../../shared/formularios/campo';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
-import {
-  ArchivoSeleccionado,
-  SelectorArchivo,
-} from '../../../shared/formularios/selector-archivo';
+import { ArchivoSeleccionado, SelectorArchivo } from '../../../shared/formularios/selector-archivo';
 import { BuscadorSipffaa } from '../../../shared/sipffaa/buscador-sipffaa';
 import { cargoDe, departamentoDe } from '../../../shared/sipffaa/datos-miembro';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
@@ -112,7 +113,7 @@ export class AsignacionFormulario {
   });
 
   protected readonly tiposDocumento = toSignal(
-    this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
+    this.catalogos.tiposDocumento(TIPOS_OPERACION.Asignacion).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
 
@@ -139,13 +140,17 @@ export class AsignacionFormulario {
 
     // El primer adjunto se crea antes de que llegue el catálogo: se completa su tipo sugerido.
     this.catalogos
-      .tiposDocumento()
-      .pipe(catchError(() => of([])), takeUntilDestroyed())
+      .tiposDocumento(TIPOS_OPERACION.Asignacion)
+      .pipe(
+        catchError(() => of([])),
+        takeUntilDestroyed(),
+      )
       .subscribe((tipos) => {
         const sugerido = tipos.find((t) => /solicitud de veh/i.test(t.nombre))?.id;
         if (!sugerido) return;
         for (const adjunto of this.adjuntos.controls) {
-          if (!adjunto.controls.tipoDocumentoId.value) adjunto.controls.tipoDocumentoId.setValue(sugerido);
+          if (!adjunto.controls.tipoDocumentoId.value)
+            adjunto.controls.tipoDocumentoId.setValue(sugerido);
         }
       });
 

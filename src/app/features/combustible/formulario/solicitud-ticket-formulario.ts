@@ -12,7 +12,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, forkJoin, of, startWith } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
-import { CatalogosService } from '../../../core/catalogos/catalogos.service';
+import { CatalogosService, TIPOS_OPERACION } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import {
   CargoSipffaa,
@@ -22,10 +22,7 @@ import {
 } from '../../../core/sipffaa/sipffaa.service';
 import { Campo } from '../../../shared/formularios/campo';
 import { aplicarErroresServidor } from '../../../shared/formularios/errores-servidor';
-import {
-  ArchivoSeleccionado,
-  SelectorArchivo,
-} from '../../../shared/formularios/selector-archivo';
+import { ArchivoSeleccionado, SelectorArchivo } from '../../../shared/formularios/selector-archivo';
 import { BuscadorSipffaa } from '../../../shared/sipffaa/buscador-sipffaa';
 import { cargoDe, departamentoDe } from '../../../shared/sipffaa/datos-miembro';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
@@ -111,7 +108,7 @@ export class SolicitudTicketFormulario {
   });
 
   protected readonly tiposDocumento = toSignal(
-    this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
+    this.catalogos.tiposDocumento(TIPOS_OPERACION.SolicitudTicket).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
   protected readonly existencias = toSignal(
@@ -144,7 +141,8 @@ export class SolicitudTicketFormulario {
           .lineas.filter((l) => l.tipoCombustible === tipo)
           .reduce((total, l) => total + (l.galones ?? 0) * (l.cantidad ?? 0), 0);
         const disponible =
-          this.existencias().find((e) => e.tipoCombustible === tipo)?.disponibleParaDespacho ?? null;
+          this.existencias().find((e) => e.tipoCombustible === tipo)?.disponibleParaDespacho ??
+          null;
         return { tipo, galones, disponible, excede: disponible !== null && galones > disponible };
       })
       .filter((r) => r.galones > 0),
@@ -165,13 +163,17 @@ export class SolicitudTicketFormulario {
 
     // El primer adjunto se crea antes de que llegue el catálogo: se completa su tipo sugerido.
     this.catalogos
-      .tiposDocumento()
-      .pipe(catchError(() => of([])), takeUntilDestroyed())
+      .tiposDocumento(TIPOS_OPERACION.SolicitudTicket)
+      .pipe(
+        catchError(() => of([])),
+        takeUntilDestroyed(),
+      )
       .subscribe((tipos) => {
         const sugerido = tipos.find((t) => /solicitud de tickets/i.test(t.nombre))?.id;
         if (!sugerido) return;
         for (const adjunto of this.adjuntos.controls) {
-          if (!adjunto.controls.tipoDocumentoId.value) adjunto.controls.tipoDocumentoId.setValue(sugerido);
+          if (!adjunto.controls.tipoDocumentoId.value)
+            adjunto.controls.tipoDocumentoId.setValue(sugerido);
         }
       });
 
@@ -185,7 +187,9 @@ export class SolicitudTicketFormulario {
     // Beneficiario: una persona (el solicitante u otra) o un cargo, nunca ambos.
     const actualizarBeneficiario = () => {
       const esCargo = c.tipoBeneficiario.value === TIPO_BENEFICIARIO.Cargo;
-      c.beneficiario.setValidators(!esCargo && !c.mismoSolicitante.value ? Validators.required : null);
+      c.beneficiario.setValidators(
+        !esCargo && !c.mismoSolicitante.value ? Validators.required : null,
+      );
       c.cargoBeneficiario.setValidators(esCargo ? Validators.required : null);
       if (esCargo || c.mismoSolicitante.value) c.beneficiario.setValue(null, { emitEvent: false });
       if (!esCargo) c.cargoBeneficiario.setValue(null, { emitEvent: false });
@@ -267,7 +271,9 @@ export class SolicitudTicketFormulario {
       // Personas del sistema para cada cédula (se crean desde SIPFFAA si no existen).
       let personas: Record<string, string>;
       try {
-        const cedulas = [...new Set([solicitante.cedula, ...(beneficiario ? [beneficiario.cedula] : [])])];
+        const cedulas = [
+          ...new Set([solicitante.cedula, ...(beneficiario ? [beneficiario.cedula] : [])]),
+        ];
         const ids = await firstValueFrom(
           forkJoin(cedulas.map((cedula) => this.sipffaa.importarPersona(cedula))),
         );
@@ -311,8 +317,11 @@ export class SolicitudTicketFormulario {
         return;
       }
 
-      const rango = numeros.length === 1 ? numeros[0] : `${numeros[0]} a ${numeros[numeros.length - 1]}`;
-      this.notificaciones.exito(`Solicitud registrada con los tickets ${rango}. Queda pendiente de aprobación.`);
+      const rango =
+        numeros.length === 1 ? numeros[0] : `${numeros[0]} a ${numeros[numeros.length - 1]}`;
+      this.notificaciones.exito(
+        `Solicitud registrada con los tickets ${rango}. Queda pendiente de aprobación.`,
+      );
       await this.router.navigate(['/combustible']);
     } finally {
       this.guardando.set(false);

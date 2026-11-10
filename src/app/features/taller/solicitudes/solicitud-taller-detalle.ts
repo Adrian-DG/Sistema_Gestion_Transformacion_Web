@@ -13,7 +13,7 @@ import {
   switchMap,
 } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
-import { CatalogosService } from '../../../core/catalogos/catalogos.service';
+import { CatalogosService, TIPOS_OPERACION } from '../../../core/catalogos/catalogos.service';
 import { DialogosService } from '../../../core/dialogos/dialogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
@@ -95,8 +95,12 @@ export class SolicitudTallerDetalle {
     { initialValue: [] },
   );
   protected readonly piezas = signal<PiezaCatalogo[]>([]);
-  private readonly tiposDocumento = toSignal(
-    this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
+  private readonly tiposDocumentoCompra = toSignal(
+    this.catalogos.tiposDocumento(TIPOS_OPERACION.CompraPieza).pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+  private readonly tiposDocumentoServicio = toSignal(
+    this.catalogos.tiposDocumento(TIPOS_OPERACION.SolicitudTaller).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
 
@@ -279,7 +283,7 @@ export class SolicitudTallerDetalle {
     }
 
     const v = this.pieza.getRawValue();
-    const tipoRecibo = this.tiposDocumento().find((t) => /recibo/i.test(t.nombre))?.id;
+    const tipoRecibo = this.tiposDocumentoCompra().find((t) => /recibo/i.test(t.nombre))?.id;
     if (compra && !tipoRecibo) {
       this.errorPieza.set('No se encontró el tipo de documento "Recibo de compra".');
       return;
@@ -406,7 +410,7 @@ export class SolicitudTallerDetalle {
     const v = this.cierre.getRawValue();
     const placa = this.detalle()!.solicitud.placa;
     const externa = this.esExterna();
-    const tipoFactura = this.tiposDocumento().find((t) => /^factura$/i.test(t.nombre))?.id;
+    const tipoFactura = this.tiposDocumentoServicio().find((t) => /^factura$/i.test(t.nombre))?.id;
     const confirmado = await this.dialogos.confirmar(
       v.procedeBaja
         ? {

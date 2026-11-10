@@ -10,7 +10,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, of, startWith } from 'rxjs';
-import { CatalogosService } from '../../../core/catalogos/catalogos.service';
+import { CatalogosService, TIPOS_OPERACION } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
 import {
@@ -81,7 +81,7 @@ export class EntradaFormulario {
   );
   protected readonly piezas = signal<PiezaCatalogo[]>([]);
   private readonly tiposDocumento = toSignal(
-    this.catalogos.tiposDocumento().pipe(catchError(() => of([]))),
+    this.catalogos.tiposDocumento(TIPOS_OPERACION.EntradaPieza).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
 
