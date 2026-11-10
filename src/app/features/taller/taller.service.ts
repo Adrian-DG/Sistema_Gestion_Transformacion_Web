@@ -87,6 +87,8 @@ export interface GarantiaVehiculo {
 export interface PiezaUtilizada {
   piezaId: string;
   codigo: string;
+  /** TipoPieza (ver TIPOS_PIEZA en inventario). */
+  tipo: number;
   pieza: string;
   unidadMedida: string;
   cantidad: number;
@@ -240,10 +242,12 @@ export class TallerService {
     trabajoRealizado: string,
     procedeBaja: boolean,
     servicio: ServicioExterno | null = null,
+    /** Taller interno: mecánico que hizo el trabajo (por defecto, el asignado al ingreso). */
+    mecanicoId: string | null = null,
   ): Observable<void> {
     return this.http.post<void>(
       api(`taller/solicitudes/${id}/finalizar`),
-      { diagnostico, trabajoRealizado, procedeBaja, ...servicio },
+      { diagnostico, trabajoRealizado, procedeBaja, mecanicoId, ...servicio },
       SIN_AVISO,
     );
   }

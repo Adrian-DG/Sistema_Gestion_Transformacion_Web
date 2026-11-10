@@ -17,7 +17,7 @@ import { aplicarErroresServidor } from '../../../shared/formularios/errores-serv
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { DatosPieza, InventarioService } from '../inventario.service';
+import { DatosPieza, InventarioService, TIPOS_PIEZA, TipoPieza } from '../inventario.service';
 
 /** Unidades de medida habituales; se puede escribir otra. */
 export const UNIDADES_MEDIDA = [
@@ -53,9 +53,11 @@ export class PiezaFormulario {
   readonly codigoBarras = input<string>();
   protected readonly esEdicion = computed(() => !!this.id());
   protected readonly unidades = UNIDADES_MEDIDA;
+  protected readonly tiposPieza = TIPOS_PIEZA;
 
   protected readonly formulario = this.fb.group({
     codigo: ['', [Validators.required, Validators.maxLength(30)]],
+    tipo: this.fb.control<TipoPieza>(1),
     codigoBarras: ['', [Validators.maxLength(64), Validators.pattern(/^\s*[\x21-\x7E]*\s*$/)]],
     nombre: ['', [Validators.required, Validators.maxLength(200)]],
     descripcion: ['', Validators.maxLength(500)],
@@ -105,6 +107,7 @@ export class PiezaFormulario {
     const v = this.formulario.getRawValue();
     const datos: DatosPieza = {
       codigo: v.codigo.trim().toUpperCase(),
+      tipo: v.tipo,
       codigoBarras: v.codigoBarras.trim() || null,
       nombre: v.nombre.trim(),
       descripcion: v.descripcion.trim() || null,

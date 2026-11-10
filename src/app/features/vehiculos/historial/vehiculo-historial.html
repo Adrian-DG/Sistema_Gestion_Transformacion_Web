@@ -165,7 +165,7 @@
   <div role="tabpanel">
     @if (historial() === null) {
       <div class="tarjeta flex justify-center p-10"><app-cargando /></div>
-    } @else if (eventos().length === 0) {
+    } @else if (historial()!.solicitudes.length === 0 && historial()!.reactivaciones.length === 0) {
       <div class="tarjeta">
         <app-estado-vacio
           icono="herramienta"
@@ -174,11 +174,66 @@
         />
       </div>
     } @else {
-      <p class="mb-3 text-sm text-slate-600">
-        {{ historial()!.solicitudes.length }} solicitud(es) de taller · Costo total (piezas y
-        servicios externos):
-        <strong>{{ moneda(costoTotal()) }}</strong>
-      </p>
+      <!-- Resumen -->
+      <dl class="mb-4 grid gap-3 sm:grid-cols-3">
+        <div class="tarjeta p-4">
+          <dt class="text-xs text-slate-500">Último mantenimiento</dt>
+          @if (ultimoMantenimiento(); as u) {
+            <dd class="mt-1 text-sm text-slate-900">
+              <span class="font-semibold">{{ u.fechaSalida | date: 'dd/MM/y' }}</span>
+              · {{ u.kilometraje | number }} km
+            </dd>
+            <dd class="text-xs text-slate-500">
+              {{
+                u.lugar === 'Externo'
+                  ? 'Taller autorizado: ' + u.tallerExterno
+                  : 'Mecánico: ' + (u.mecanico ?? '—')
+              }}
+            </dd>
+          } @else {
+            <dd class="mt-1 text-sm text-slate-500">Ninguno finalizado</dd>
+          }
+        </div>
+        <div class="tarjeta p-4">
+          <dt class="text-xs text-slate-500">Entradas al taller</dt>
+          <dd class="mt-1 text-sm text-slate-900">
+            <span class="font-semibold">{{ historial()!.solicitudes.length }}</span> registradas ·
+            {{ finalizados() }} finalizadas
+          </dd>
+        </div>
+        <div class="tarjeta p-4">
+          <dt class="text-xs text-slate-500">Costo total (piezas y servicios externos)</dt>
+          <dd class="mt-1 text-sm font-semibold text-slate-900">{{ moneda(costoTotal()) }}</dd>
+        </div>
+      </dl>
+
+      <!-- Filtros -->
+      <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label class="sm:w-56">
+          <span class="sr-only">Tipo de entrada</span>
+          <select class="control" (change)="filtroTipo.set($any($event.target).value)">
+            <option value="">Todos los tipos</option>
+            <option value="Mantenimiento">Mantenimientos</option>
+            <option value="Reparacion">Reparaciones</option>
+            <option value="EvaluacionBaja">Evaluaciones de baja</option>
+          </select>
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            class="size-4 rounded border-slate-300 accent-primario"
+            [checked]="soloFinalizados()"
+            (change)="soloFinalizados.set($any($event.target).checked)"
+          />
+          Solo finalizados
+        </label>
+      </div>
+
+      @if (eventos().length === 0) {
+        <p class="tarjeta p-6 text-center text-sm text-slate-500">
+          Ninguna entrada al taller coincide con los filtros.
+        </p>
+      }
       <ol class="space-y-3">
         @for (e of eventos(); track $index) {
           @if (e.tipo === 'solicitud') {
@@ -186,11 +241,15 @@
             <li class="tarjeta p-4">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <a
-                    [routerLink]="['/taller', s.id]"
-                    class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
-                    >{{ s.numero }}</a
-                  >
+                  @if (puedeEnviarATaller()) {
+                    <a
+                      [routerLink]="['/taller', s.id]"
+                      class="font-mono font-semibold text-slate-900 hover:text-primario hover:underline"
+                      >{{ s.numero }}</a
+                    >
+                  } @else {
+                    <span class="font-mono font-semibold text-slate-900">{{ s.numero }}</span>
+                  }
                   <span class="ml-2 text-sm text-slate-600">{{ nombreTipo(s.tipo) }}</span>
                   <p class="text-xs text-slate-500">
                     {{ e.fecha | date: 'dd/MM/y' }}
@@ -229,17 +288,40 @@
                 <p class="mt-2 text-xs text-slate-500">Motivo: {{ s.motivoRechazoCancelacion }}</p>
               }
               @if (e.piezas.length > 0) {
-                <ul class="mt-3 space-y-0.5 border-t border-slate-100 pt-2 text-xs text-slate-700">
-                  @for (p of e.piezas; track $index) {
-                    <li>
-                      {{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }} · {{ p.pieza }}
-                      <span class="text-slate-500">
-                        · {{ moneda(p.cantidad * p.costoUnitario) }}
-                        {{ p.origen === 'CompraDirecta' ? '(compra directa)' : '' }}
-                      </span>
-                    </li>
-                  }
-                </ul>
+                <table class="mt-3 w-full border-t border-slate-100 text-xs text-slate-700">
+                  <caption class="pt-2 text-left font-medium text-slate-500">
+                    Piezas utilizadas
+                  </caption>
+                  <thead class="text-left text-slate-500">
+                    <tr>
+                      <th class="py-1 pr-2 font-medium">Código</th>
+                      <th class="py-1 pr-2 font-medium">Pieza</th>
+                      <th class="py-1 pr-2 font-medium">Tipo</th>
+                      <th class="py-1 pr-2 text-right font-medium">Cantidad</th>
+                      <th class="py-1 text-right font-medium">Costo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of e.piezas; track $index) {
+                      <tr class="border-t border-slate-50">
+                        <td class="py-1 pr-2 font-mono">{{ p.codigo }}</td>
+                        <td class="py-1 pr-2">
+                          {{ p.pieza }}
+                          @if (p.origen === 'CompraDirecta') {
+                            <span class="text-slate-500">(compra directa)</span>
+                          }
+                        </td>
+                        <td class="py-1 pr-2">{{ nombreTipoPieza(p.tipo) }}</td>
+                        <td class="py-1 pr-2 text-right whitespace-nowrap">
+                          {{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }}
+                        </td>
+                        <td class="py-1 text-right whitespace-nowrap">
+                          {{ moneda(p.cantidad * p.costoUnitario) }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
                 <p class="mt-1 text-right text-xs font-medium text-slate-800">
                   Piezas: {{ moneda(s.costoPiezas) }}
                 </p>

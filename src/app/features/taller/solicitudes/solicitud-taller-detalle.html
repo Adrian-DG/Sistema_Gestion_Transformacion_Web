@@ -229,7 +229,9 @@
                 <tr>
                   <td class="px-5 py-2">
                     <span class="block text-slate-900">{{ p.pieza }}</span>
-                    <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+                    <span class="block text-xs text-slate-500">
+                      <span class="font-mono">{{ p.codigo }}</span> · {{ nombreTipoPieza(p.tipo) }}
+                    </span>
                   </td>
                   <td class="px-5 py-2 text-right">
                     {{ p.cantidad | number: '1.0-2' }} {{ p.unidadMedida }}
@@ -400,6 +402,18 @@
                     }
                   </datalist>
                 </app-campo>
+                <app-campo
+                  etiqueta="Tipo"
+                  para="npTipo"
+                  [control]="nuevaPieza.controls.tipo"
+                  requerido
+                >
+                  <select id="npTipo" class="control" formControlName="tipo">
+                    @for (t of tiposPieza; track t.valor) {
+                      <option [ngValue]="t.valor">{{ t.nombre }}</option>
+                    }
+                  </select>
+                </app-campo>
                 <div class="flex gap-2">
                   <button
                     type="button"
@@ -534,6 +548,23 @@
           </div>
         }
         <div class="grid gap-5 sm:grid-cols-2">
+          @if (!esExterna()) {
+            <app-campo
+              etiqueta="Mecánico que realizó el trabajo"
+              para="mecanicoCierre"
+              [control]="cierre.controls.mecanicoId"
+              class="sm:col-span-2"
+              ayuda="Se propone el asignado al ingreso; cámbielo si otro mecánico hizo el trabajo."
+              requerido
+            >
+              <select id="mecanicoCierre" class="control" formControlName="mecanicoId">
+                <option [ngValue]="null" disabled>Seleccione…</option>
+                @for (m of mecanicos(); track m.id) {
+                  <option [ngValue]="m.id">{{ m.nombre }}</option>
+                }
+              </select>
+            </app-campo>
+          }
           <app-campo
             etiqueta="Diagnóstico"
             para="diagnostico"

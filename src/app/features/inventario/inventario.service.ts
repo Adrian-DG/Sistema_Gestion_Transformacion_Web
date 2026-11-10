@@ -4,9 +4,26 @@ import { Observable } from 'rxjs';
 import { Paginado, SIN_AVISO_ERROR, api } from '../../core/api/api';
 import { ElementoCatalogo } from '../../core/catalogos/catalogos.service';
 
+/** Espejo de TipoPieza del backend. */
+export const TIPOS_PIEZA = [
+  { valor: 1, nombre: 'Repuesto' },
+  { valor: 2, nombre: 'Lubricante o fluido' },
+  { valor: 3, nombre: 'Filtro' },
+  { valor: 4, nombre: 'Neumático' },
+  { valor: 5, nombre: 'Batería' },
+  { valor: 6, nombre: 'Eléctrico' },
+  { valor: 7, nombre: 'Frenos' },
+  { valor: 8, nombre: 'Accesorio' },
+  { valor: 0, nombre: 'Otro' },
+] as const;
+export type TipoPieza = (typeof TIPOS_PIEZA)[number]['valor'];
+export const nombreTipoPieza = (tipo: number): string =>
+  TIPOS_PIEZA.find((t) => t.valor === tipo)?.nombre ?? 'Otro';
+
 export interface Pieza {
   id: string;
   codigo: string;
+  tipo: TipoPieza;
   /** Opcional; identifica la pieza al escanearla. */
   codigoBarras: string | null;
   nombre: string;
@@ -21,6 +38,7 @@ export interface Pieza {
 export interface PiezaCatalogo {
   id: string;
   codigo: string;
+  tipo: TipoPieza;
   codigoBarras: string | null;
   nombre: string;
   unidadMedida: string;
@@ -29,6 +47,7 @@ export interface PiezaCatalogo {
 
 export interface DatosPieza {
   codigo: string;
+  tipo: TipoPieza;
   codigoBarras: string | null;
   nombre: string;
   descripcion: string | null;

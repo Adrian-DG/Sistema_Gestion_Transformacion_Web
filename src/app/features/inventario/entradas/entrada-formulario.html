@@ -69,96 +69,126 @@
   </section>
 
   <section class="tarjeta" aria-labelledby="sec-lineas">
-    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+    <header class="border-b border-slate-200 px-5 py-3">
       <h2 id="sec-lineas" class="font-semibold text-slate-900">Piezas</h2>
-      <button type="button" class="btn btn-texto btn-sm" (click)="agregarLinea()">
-        <app-icono nombre="mas" [tamano]="16" /> Agregar pieza
-      </button>
+      <p class="text-xs text-slate-500">
+        Busque por código o nombre, o escanee el código de barras. Si la pieza ya está en la entrada
+        se suma a su cantidad; si no existe, puede registrarla aquí mismo.
+      </p>
     </header>
-    <div class="border-b border-slate-200 bg-slate-50/60 px-5 py-3">
+
+    <div class="grid gap-4 border-b border-slate-200 bg-slate-50/60 px-5 py-4 lg:grid-cols-2">
+      <app-buscador-pieza
+        [piezas]="piezas()"
+        [enEntrada]="enEntrada()"
+        (elegida)="agregarPieza($event)"
+        (crear)="nuevaPieza.set({ texto: $event })"
+      />
       <app-lector-codigo-barras
         idControl="escaner"
-        etiqueta="Escanee una pieza para agregarla (cada lectura suma 1)"
+        etiqueta="O escanee el código de barras (cada lectura suma 1)"
         (leido)="escanear($event)"
       />
-      @if (codigoDesconocido(); as codigo) {
-        <p class="mt-2 text-sm text-amber-800" role="alert">
-          Ninguna pieza activa tiene el código <span class="font-mono">{{ codigo }}</span
-          >.
-          <a
-            routerLink="/inventario-piezas/nueva"
-            [queryParams]="{ codigoBarras: codigo }"
-            target="_blank"
-            class="font-medium underline"
-            >Registrar la pieza</a
-          >
-          y vuelva a escanearla.
-        </p>
+      @if (nuevaPieza(); as inicio) {
+        <app-pieza-rapida
+          class="lg:col-span-2"
+          [inicio]="inicio"
+          (creada)="piezaCreada($event)"
+          (cancelar)="cancelarNuevaPieza()"
+        />
       }
     </div>
-    <div class="divide-y divide-slate-100" formArrayName="lineas">
-      @for (linea of lineas.controls; track linea; let i = $index) {
-        <div
-          class="grid gap-4 p-5 sm:grid-cols-[1fr_8rem_10rem_auto] sm:items-end"
-          [formGroupName]="i"
-        >
-          <app-campo
-            etiqueta="Pieza"
-            [para]="'pieza-' + i"
-            [control]="linea.controls.piezaId"
-            requerido
-          >
-            <select [id]="'pieza-' + i" class="control" formControlName="piezaId">
-              <option [ngValue]="null" disabled>Seleccione…</option>
-              @for (p of piezas(); track p.id) {
-                <option [ngValue]="p.id">{{ p.nombre }} ({{ p.codigo }})</option>
-              }
-            </select>
-          </app-campo>
-          <app-campo
-            [etiqueta]="'Cantidad ' + unidad(linea.controls.piezaId.value)"
-            [para]="'cantidad-' + i"
-            [control]="linea.controls.cantidad"
-            requerido
-          >
-            <input
-              [id]="'cantidad-' + i"
-              type="number"
-              min="0.01"
-              step="0.01"
-              class="control"
-              formControlName="cantidad"
-            />
-          </app-campo>
-          <app-campo
-            etiqueta="Costo unitario (RD$)"
-            [para]="'costo-' + i"
-            [control]="linea.controls.costoUnitario"
-            requerido
-          >
-            <input
-              [id]="'costo-' + i"
-              type="number"
-              min="0"
-              step="0.01"
-              class="control"
-              formControlName="costoUnitario"
-            />
-          </app-campo>
-          <button
-            type="button"
-            class="btn btn-texto btn-sm !text-red-700"
-            [disabled]="lineas.length === 1"
-            (click)="quitarLinea(i)"
-            [attr.aria-label]="'Quitar línea ' + (i + 1)"
-          >
-            <app-icono nombre="cerrar" [tamano]="16" />
-          </button>
-        </div>
-      }
-    </div>
-    <footer class="flex justify-end border-t border-slate-200 px-5 py-3 text-sm">
-      Total: <span class="ml-2 font-semibold">{{ moneda(totalEntrada()) }}</span>
+
+    @if (lineas.length === 0) {
+      <p class="px-5 py-10 text-center text-sm text-slate-500">Aún no hay piezas en la entrada.</p>
+    } @else {
+      <div class="overflow-x-auto" formArrayName="lineas">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+            <tr>
+              <th class="px-5 py-2 font-medium">Pieza</th>
+              <th class="px-3 py-2 font-medium">Existencia</th>
+              <th class="w-32 px-3 py-2 font-medium">Cantidad</th>
+              <th class="w-40 px-3 py-2 font-medium">Costo unitario (RD$)</th>
+              <th class="px-3 py-2 text-right font-medium">Subtotal</th>
+              <th class="w-12 px-3 py-2"><span class="sr-only">Quitar</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (linea of lineas.controls; track linea; let i = $index) {
+              @let p = pieza(linea.controls.piezaId.value);
+              <tr [formGroupName]="i" class="align-top">
+                <td class="px-5 py-3">
+                  <span class="block font-medium text-slate-900">{{ p?.nombre }}</span>
+                  <span class="block font-mono text-xs text-slate-500">{{ p?.codigo }}</span>
+                </td>
+                <td class="px-3 py-3 text-xs whitespace-nowrap text-slate-600">
+                  {{ p?.existencia ?? 0 }} →
+                  <span class="font-semibold text-slate-900">
+                    {{ (p?.existencia ?? 0) + (linea.controls.cantidad.value ?? 0) }}
+                  </span>
+                  {{ p?.unidadMedida }}
+                </td>
+                <td class="px-3 py-2">
+                  <app-campo
+                    [etiqueta]="'Cantidad de ' + (p?.nombre ?? 'la pieza')"
+                    [para]="'cantidad-' + i"
+                    [control]="linea.controls.cantidad"
+                    class="[&_label]:sr-only"
+                  >
+                    <input
+                      [id]="'cantidad-' + i"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      inputmode="decimal"
+                      class="control"
+                      formControlName="cantidad"
+                    />
+                  </app-campo>
+                </td>
+                <td class="px-3 py-2">
+                  <app-campo
+                    [etiqueta]="'Costo unitario de ' + (p?.nombre ?? 'la pieza')"
+                    [para]="'costo-' + i"
+                    [control]="linea.controls.costoUnitario"
+                    class="[&_label]:sr-only"
+                  >
+                    <input
+                      [id]="'costo-' + i"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      class="control"
+                      formControlName="costoUnitario"
+                    />
+                  </app-campo>
+                </td>
+                <td class="px-3 py-3 text-right whitespace-nowrap">
+                  {{ moneda(subtotal(linea)) }}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    class="btn btn-texto btn-sm !text-red-700"
+                    (click)="quitarLinea(i)"
+                    [attr.aria-label]="'Quitar ' + (p?.nombre ?? 'la pieza') + ' de la entrada'"
+                  >
+                    <app-icono nombre="cerrar" [tamano]="16" />
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <footer class="flex justify-between border-t border-slate-200 px-5 py-3 text-sm">
+      <span class="text-slate-500">{{ lineas.length }} pieza(s)</span>
+      <span
+        >Total: <span class="ml-2 font-semibold">{{ moneda(totalEntrada()) }}</span></span
+      >
     </footer>
   </section>
 

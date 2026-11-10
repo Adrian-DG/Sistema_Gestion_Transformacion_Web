@@ -58,6 +58,7 @@
       <span class="block font-mono text-xs text-slate-500">
         {{ p.codigo }}{{ p.codigoBarras ? ' · ' + p.codigoBarras : '' }}
       </span>
+      <span class="block text-xs text-slate-500">{{ nombreTipo(p.tipo) }}</span>
     </ng-template>
 
     <ng-template appCelda="existencia" let-p>

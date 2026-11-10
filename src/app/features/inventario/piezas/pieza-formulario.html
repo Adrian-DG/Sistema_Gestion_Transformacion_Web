@@ -58,6 +58,13 @@
       <app-campo etiqueta="Nombre" para="nombre" [control]="formulario.controls.nombre" requerido>
         <input id="nombre" class="control" formControlName="nombre" />
       </app-campo>
+      <app-campo etiqueta="Tipo" para="tipo" [control]="formulario.controls.tipo" requerido>
+        <select id="tipo" class="control" formControlName="tipo">
+          @for (t of tiposPieza; track t.valor) {
+            <option [ngValue]="t.valor">{{ t.nombre }}</option>
+          }
+        </select>
+      </app-campo>
       <app-campo
         etiqueta="Unidad de medida"
         para="unidadMedida"

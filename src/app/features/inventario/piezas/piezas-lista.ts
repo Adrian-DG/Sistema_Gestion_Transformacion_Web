@@ -18,7 +18,7 @@ import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { CambioPagina, Paginador } from '../../../shared/ui/paginador/paginador';
 import { Celda, Columna, Tabla } from '../../../shared/ui/tabla/tabla';
-import { InventarioService, Pieza } from '../inventario.service';
+import { InventarioService, Pieza, nombreTipoPieza } from '../inventario.service';
 
 const ESPERA_BUSQUEDA_MS = 350;
 
@@ -50,6 +50,7 @@ export class PiezasLista {
   readonly q = input('', { transform: (v: string | undefined) => v ?? '' });
   readonly bajoMinimo = input(false, { transform: booleanAttribute });
 
+  protected readonly nombreTipo = nombreTipoPieza;
   protected readonly columnas: Columna[] = [
     { clave: 'pieza', titulo: 'Pieza' },
     { clave: 'existencia', titulo: 'Existencia', alineacion: 'derecha' },

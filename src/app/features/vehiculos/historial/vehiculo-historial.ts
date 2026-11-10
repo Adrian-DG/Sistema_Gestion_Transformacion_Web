@@ -27,7 +27,7 @@ import {
   ESTATUS_ASIGNACION,
   EstatusAsignacion,
 } from '../../asignaciones/asignaciones.service';
-import { moneda } from '../../inventario/inventario.service';
+import { moneda, nombreTipoPieza } from '../../inventario/inventario.service';
 import {
   HistorialMantenimientos,
   PiezaUtilizada,
@@ -117,18 +117,47 @@ export class VehiculoHistorial {
   protected readonly total = signal(0);
   protected readonly cargando = signal(true);
 
+  protected readonly nombreTipoPieza = nombreTipoPieza;
+
+  /** Filtros del historial de mantenimientos (en el navegador; el historial llega completo). */
+  protected readonly filtroTipo = signal<string>('');
+  protected readonly soloFinalizados = signal(false);
+
+  /** Último mantenimiento finalizado: fecha de salida, kilometraje y quién lo hizo. */
+  protected readonly ultimoMantenimiento = computed(
+    () =>
+      (this.historial()?.solicitudes ?? [])
+        .map((s) => s.solicitud)
+        .filter((s) => s.estatus === 'Finalizada' && s.fechaSalida)
+        .sort((a, b) => b.fechaSalida!.localeCompare(a.fechaSalida!))[0] ?? null,
+  );
+
+  protected readonly finalizados = computed(
+    () =>
+      (this.historial()?.solicitudes ?? []).filter((s) => s.solicitud.estatus === 'Finalizada')
+        .length,
+  );
+
   /** Solicitudes de taller y reactivaciones, la más reciente primero. */
   protected readonly eventos = computed<EventoMantenimiento[]>(() => {
     const h = this.historial();
     if (!h) return [];
+    const tipo = this.filtroTipo();
+    const soloFinalizados = this.soloFinalizados();
+    const solicitudes = h.solicitudes.filter(
+      (s) =>
+        (!tipo || s.solicitud.tipo === tipo) &&
+        (!soloFinalizados || s.solicitud.estatus === 'Finalizada'),
+    );
     const eventos: EventoMantenimiento[] = [
-      ...h.solicitudes.map((s) => ({
+      ...solicitudes.map((s) => ({
         tipo: 'solicitud' as const,
         fecha: s.solicitud.fechaIngreso ?? s.solicitud.fechaSolicitud,
         solicitud: s.solicitud,
         piezas: s.piezas,
       })),
-      ...h.reactivaciones.map((r) => ({
+      // Las reactivaciones no son mantenimientos: se ocultan al filtrar.
+      ...(tipo || soloFinalizados ? [] : h.reactivaciones).map((r) => ({
         tipo: 'reactivacion' as const,
         fecha: r.fecha,
         motivo: r.motivo,

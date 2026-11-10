@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormArray,
@@ -23,6 +30,8 @@ import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { InventarioService, NuevaEntrada, PiezaCatalogo, moneda } from '../inventario.service';
+import { BuscadorPieza } from './buscador-pieza';
+import { InicioPiezaRapida, PiezaRapida } from './pieza-rapida';
 
 type Linea = FormGroup<{
   piezaId: FormControl<string | null>;
@@ -38,8 +47,9 @@ function hoy(): string {
 }
 
 /**
- * Compra de piezas al inventario: proveedor, factura y una línea por pieza con su costo. Al escanear
- * un código de barras se agrega la pieza (o se suma 1 si ya está en la entrada).
+ * Compra de piezas al inventario: proveedor, factura y una línea por pieza con su costo. Las piezas se
+ * agregan buscándolas por código o nombre, o escaneando su código de barras: si ya están en la entrada
+ * se suma a su cantidad; si no existen, se registran ahí mismo (registro rápido) y se agregan.
  */
 @Component({
   selector: 'app-entrada-formulario',
@@ -52,6 +62,8 @@ function hoy(): string {
     Icono,
     SelectorArchivo,
     LectorCodigoBarras,
+    BuscadorPieza,
+    PiezaRapida,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrada-formulario.html',
@@ -87,8 +99,15 @@ export class EntradaFormulario {
 
   protected readonly guardando = signal(false);
   protected readonly errorGeneral = signal<string | null>(null);
-  /** Código escaneado que no corresponde a ninguna pieza activa. */
-  protected readonly codigoDesconocido = signal<string | null>(null);
+  /** Registro rápido de una pieza que no existe (abierto con lo buscado o escaneado). */
+  protected readonly nuevaPieza = signal<InicioPiezaRapida | null>(null);
+  private readonly buscador = viewChild(BuscadorPieza);
+
+  /** Ids de las piezas ya agregadas (el buscador indica que elegirlas suma). */
+  protected readonly enEntrada = computed(() => {
+    this.valores();
+    return this.lineas.controls.map((l) => l.controls.piezaId.value!).filter(Boolean);
+  });
 
   private readonly valores = toSignal(this.formulario.valueChanges.pipe(startWith(null)));
   protected readonly totalEntrada = computed(() => {
@@ -99,7 +118,6 @@ export class EntradaFormulario {
   });
 
   constructor() {
-    this.agregarLinea();
     void this.cargarPiezas();
   }
 
@@ -113,45 +131,42 @@ export class EntradaFormulario {
     return this.formulario.controls.lineas;
   }
 
-  protected unidad(piezaId: string | null): string {
-    return this.piezas().find((p) => p.id === piezaId)?.unidadMedida ?? '';
+  protected pieza(piezaId: string | null): PiezaCatalogo | undefined {
+    return this.piezas().find((p) => p.id === piezaId);
+  }
+
+  protected subtotal(linea: Linea): number {
+    return (linea.controls.cantidad.value ?? 0) * (linea.controls.costoUnitario.value ?? 0);
   }
 
   protected async escanear(leido: string): Promise<void> {
     let pieza = buscarPorCodigo(this.piezas(), leido);
     if (!pieza) {
-      // Puede haberse registrado después de abrir el formulario (ej. desde el aviso de abajo).
+      // Puede haberse registrado en otra pestaña después de abrir el formulario.
       await this.cargarPiezas();
       pieza = buscarPorCodigo(this.piezas(), leido);
     }
-    if (!pieza) {
-      this.codigoDesconocido.set(leido);
-      return;
-    }
-    this.codigoDesconocido.set(null);
-
-    const existente = this.lineas.controls.find((l) => l.controls.piezaId.value === pieza.id);
-    if (existente) {
-      const cantidad = existente.controls.cantidad;
-      cantidad.setValue((cantidad.value ?? 0) + 1);
-      this.notificaciones.info(`${pieza.nombre}: ${cantidad.value} ${pieza.unidadMedida}.`);
-      return;
-    }
-
-    // Se usa la línea vacía, si la hay; si no, una nueva.
-    let linea = this.lineas.controls.find((l) => !l.controls.piezaId.value);
-    if (!linea) {
-      this.agregarLinea();
-      linea = this.lineas.at(this.lineas.length - 1);
-    }
-    linea.patchValue({ piezaId: pieza.id, cantidad: 1 });
-    this.notificaciones.info(`${pieza.nombre} agregada; indique su costo.`);
+    if (pieza) this.agregarPieza(pieza);
+    else this.nuevaPieza.set({ codigoBarras: leido.trim() });
   }
 
-  protected agregarLinea(): void {
+  /**
+   * Agrega la pieza a la entrada o, si ya está, suma 1 a su cantidad. El foco va al costo (pieza nueva
+   * en la entrada) o a la cantidad (pieza repetida) para seguir sin el ratón.
+   */
+  protected agregarPieza(pieza: PiezaCatalogo): void {
+    const indice = this.lineas.controls.findIndex((l) => l.controls.piezaId.value === pieza.id);
+    if (indice >= 0) {
+      const cantidad = this.lineas.at(indice).controls.cantidad;
+      cantidad.setValue((cantidad.value ?? 0) + 1);
+      this.notificaciones.info(`${pieza.nombre}: ahora ${cantidad.value} ${pieza.unidadMedida}.`);
+      this.enfocar(`cantidad-${indice}`);
+      return;
+    }
+
     this.lineas.push(
       this.fb.group({
-        piezaId: this.fb.control<string | null>(null, Validators.required),
+        piezaId: this.fb.control<string | null>(pieza.id, Validators.required),
         cantidad: this.fb.control<number | null>(1, [Validators.required, Validators.min(0.01)]),
         costoUnitario: this.fb.control<number | null>(null, [
           Validators.required,
@@ -159,16 +174,44 @@ export class EntradaFormulario {
         ]),
       }),
     );
+    this.enfocar(`costo-${this.lineas.length - 1}`);
+  }
+
+  /** Pieza registrada desde la entrada: entra al catálogo y a la entrada. */
+  protected piezaCreada(pieza: PiezaCatalogo): void {
+    this.piezas.update((piezas) =>
+      [...piezas, pieza].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    );
+    this.nuevaPieza.set(null);
+    this.notificaciones.exito(`Pieza ${pieza.codigo} registrada y agregada a la entrada.`);
+    this.agregarPieza(pieza);
+  }
+
+  protected cancelarNuevaPieza(): void {
+    this.nuevaPieza.set(null);
+    this.buscador()?.enfocar();
+  }
+
+  private enfocar(id: string): void {
+    setTimeout(() => {
+      const campo = document.getElementById(id) as HTMLInputElement | null;
+      campo?.focus();
+      campo?.select();
+    });
   }
 
   protected quitarLinea(indice: number): void {
     this.lineas.removeAt(indice);
+    this.buscador()?.enfocar();
   }
 
   protected async guardar(): Promise<void> {
     this.errorGeneral.set(null);
     if (this.lineas.length === 0) {
-      this.errorGeneral.set('Agregue al menos una pieza.');
+      this.errorGeneral.set(
+        'Agregue al menos una pieza: búsquela por código o nombre, o escanéela.',
+      );
+      this.buscador()?.enfocar();
       return;
     }
     if (this.formulario.invalid) {
@@ -178,12 +221,6 @@ export class EntradaFormulario {
     }
 
     const v = this.formulario.getRawValue();
-    const ids = v.lineas.map((l) => l.piezaId);
-    if (new Set(ids).size !== ids.length) {
-      this.errorGeneral.set('Cada pieza debe aparecer una sola vez en la entrada.');
-      return;
-    }
-
     const tipoFactura = this.tiposDocumento().find((t) => /^factura$/i.test(t.nombre))?.id;
     const entrada: NuevaEntrada = {
       proveedorId: v.proveedorId!,

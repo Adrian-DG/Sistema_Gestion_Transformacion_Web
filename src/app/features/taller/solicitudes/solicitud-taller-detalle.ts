@@ -33,6 +33,9 @@ import {
   PiezaCatalogo,
   abrirArchivo,
   moneda,
+  nombreTipoPieza,
+  TIPOS_PIEZA,
+  TipoPieza,
 } from '../../inventario/inventario.service';
 import { UNIDADES_MEDIDA } from '../../inventario/piezas/pieza-formulario';
 import {
@@ -128,10 +131,14 @@ export class SolicitudTallerDetalle {
     codigoBarras: ['', [Validators.maxLength(64), Validators.pattern(/^\s*[\x21-\x7E]*\s*$/)]],
     nombre: ['', [Validators.required, Validators.maxLength(200)]],
     unidadMedida: ['Unidad', [Validators.required, Validators.maxLength(30)]],
+    tipo: this.fb.control<TipoPieza>(1),
   });
+  protected readonly tiposPieza = TIPOS_PIEZA;
 
   // Cierre
   protected readonly cierre = this.fb.group({
+    // Taller interno: mecánico que hizo el trabajo (se propone el asignado al ingreso).
+    mecanicoId: this.fb.control<string | null>(null),
     diagnostico: ['', [Validators.required, Validators.maxLength(2000)]],
     trabajoRealizado: ['', [Validators.required, Validators.maxLength(2000)]],
     procedeBaja: [false],
@@ -142,6 +149,7 @@ export class SolicitudTallerDetalle {
   });
   protected readonly errorCierre = signal<string | null>(null);
 
+  protected readonly nombreTipoPieza = nombreTipoPieza;
   protected readonly esExterna = computed(() => this.detalle()?.solicitud.lugar === 'Externo');
 
   private readonly valoresPieza = toSignal(this.pieza.valueChanges.pipe(startWith(null)));
@@ -188,6 +196,11 @@ export class SolicitudTallerDetalle {
           externa ? [Validators.required, Validators.min(0)] : Validators.min(0),
         );
         this.cierre.controls.costoServicio.updateValueAndValidity();
+        this.cierre.controls.mecanicoId.setValidators(externa ? null : Validators.required);
+        if (!this.cierre.controls.mecanicoId.value) {
+          this.cierre.controls.mecanicoId.setValue(detalle.solicitud.mecanicoId);
+        }
+        this.cierre.controls.mecanicoId.updateValueAndValidity();
         if (this.ingreso.controls.kilometraje.value === null) {
           this.ingreso.controls.kilometraje.setValue(detalle.solicitud.kilometraje);
         }
@@ -379,6 +392,7 @@ export class SolicitudTallerDetalle {
       const id = await firstValueFrom(
         this.inventario.crearPieza({
           codigo: v.codigo.trim().toUpperCase(),
+          tipo: v.tipo,
           codigoBarras: v.codigoBarras.trim() || null,
           nombre: v.nombre.trim(),
           descripcion: null,
@@ -452,6 +466,7 @@ export class SolicitudTallerDetalle {
                     : [],
               }
             : null,
+          externa ? null : v.mecanicoId,
         ),
       );
       this.notificaciones.exito(
