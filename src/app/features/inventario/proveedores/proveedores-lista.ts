@@ -15,7 +15,12 @@ import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { CambioPagina, Paginador } from '../../../shared/ui/paginador/paginador';
 import { Celda, Columna, Tabla } from '../../../shared/ui/tabla/tabla';
-import { InventarioService, Proveedor } from '../inventario.service';
+import {
+  InventarioService,
+  Proveedor,
+  TIPO_PROVEEDOR,
+  nombreTipoProveedor,
+} from '../inventario.service';
 
 const ESPERA_BUSQUEDA_MS = 350;
 
@@ -81,11 +86,8 @@ const ESPERA_BUSQUEDA_MS = 350;
         <ng-template appCelda="estado" let-p>
           <div class="flex flex-wrap gap-1">
             <app-estado-badge [estado]="p.activo ? 'Activo' : 'Inactivo'" />
-            @if (p.esTallerAutorizado) {
-              <app-estado-badge estado="Taller autorizado" />
-            }
-            @if (p.esSuplidorCombustible) {
-              <app-estado-badge estado="Suplidor de combustible" />
+            @if (p.tipo !== tipoOtro) {
+              <app-estado-badge [estado]="nombreTipo(p.tipo)" />
             }
           </div>
         </ng-template>
@@ -113,6 +115,8 @@ export class ProveedoresLista {
   });
   readonly q = input('', { transform: (v: string | undefined) => v ?? '' });
 
+  protected readonly tipoOtro = TIPO_PROVEEDOR.Otro;
+  protected readonly nombreTipo = nombreTipoProveedor;
   protected readonly columnas: Columna[] = [
     { clave: 'nombre', titulo: 'Proveedor' },
     { clave: 'contacto', titulo: 'Contacto', ocultarEnMovil: true },

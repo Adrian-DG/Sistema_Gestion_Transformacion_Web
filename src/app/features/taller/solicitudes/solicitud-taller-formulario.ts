@@ -23,7 +23,7 @@ import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { EstadoBadge } from '../../../shared/ui/estado-badge/estado-badge';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { InventarioService } from '../../inventario/inventario.service';
+import { InventarioService, TIPO_PROVEEDOR } from '../../inventario/inventario.service';
 import { GarantiaVehiculo, LUGARES, TIPOS_SOLICITUD, TallerService } from '../taller.service';
 
 const INTERNO = 1;
@@ -85,7 +85,7 @@ export class SolicitudTallerFormulario {
     { initialValue: [] },
   );
   protected readonly talleres = toSignal(
-    this.inventario.catalogoProveedores(true).pipe(catchError(() => of([]))),
+    this.inventario.catalogoProveedores(TIPO_PROVEEDOR.Taller).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
 

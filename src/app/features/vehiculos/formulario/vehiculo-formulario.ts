@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { catchError, filter, firstValueFrom, of, startWith, switchMap } from 'rxjs';
 import { esApiError } from '../../../core/api/api';
-import { InventarioService } from '../../inventario/inventario.service';
+import { InventarioService, TIPO_PROVEEDOR } from '../../inventario/inventario.service';
 import { CatalogosService } from '../../../core/catalogos/catalogos.service';
 import { NotificacionesService } from '../../../core/notificaciones/notificaciones.service';
 import { Campo } from '../../../shared/formularios/campo';
@@ -79,7 +79,7 @@ export class VehiculoFormulario {
 
   /** Talleres autorizados (concesionarios) para la garantía. */
   protected readonly talleres = toSignal(
-    this.inventario.catalogoProveedores(true).pipe(catchError(() => of([]))),
+    this.inventario.catalogoProveedores(TIPO_PROVEEDOR.Taller).pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
   /** Estado de la garantía guardada (null si no tiene). */

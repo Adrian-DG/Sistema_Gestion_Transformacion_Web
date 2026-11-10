@@ -58,6 +58,33 @@ export interface MovimientoPieza {
   placa: string | null;
 }
 
+/** Espejo de TipoProveedor del backend. */
+export const TIPO_PROVEEDOR = { Otro: 0, Taller: 1, SuplidorCombustible: 2 } as const;
+export type TipoProveedor = (typeof TIPO_PROVEEDOR)[keyof typeof TIPO_PROVEEDOR];
+
+export const TIPOS_PROVEEDOR: { valor: TipoProveedor; nombre: string; descripcion: string }[] = [
+  {
+    valor: TIPO_PROVEEDOR.Taller,
+    nombre: 'Taller autorizado',
+    descripcion:
+      'Concesionario o taller donde se pueden hacer mantenimientos externos, por ejemplo para conservar la garantía de un vehículo nuevo.',
+  },
+  {
+    valor: TIPO_PROVEEDOR.SuplidorCombustible,
+    nombre: 'Suplidor de combustible',
+    descripcion:
+      'Suple gasolina o gasoil. Solo estos proveedores se pueden elegir al registrar una entrada de combustible.',
+  },
+  {
+    valor: TIPO_PROVEEDOR.Otro,
+    nombre: 'Otro',
+    descripcion: 'Suplidor de piezas u otros servicios.',
+  },
+];
+
+export const nombreTipoProveedor = (tipo: TipoProveedor): string =>
+  TIPOS_PROVEEDOR.find((t) => t.valor === tipo)?.nombre ?? 'Otro';
+
 export interface Proveedor {
   id: string;
   nombre: string;
@@ -66,10 +93,7 @@ export interface Proveedor {
   correo: string | null;
   direccion: string | null;
   contacto: string | null;
-  /** Taller autorizado (concesionario) para mantenimientos externos. */
-  esTallerAutorizado: boolean;
-  /** Suple combustible: aparece al registrar una entrada de combustible. */
-  esSuplidorCombustible: boolean;
+  tipo: TipoProveedor;
   activo: boolean;
 }
 
@@ -172,10 +196,10 @@ export class InventarioService {
     return this.http.get<Paginado<Proveedor>>(api('inventario-piezas/proveedores'), { params });
   }
 
-  /** Proveedores activos; con `soloTalleres`, los talleres autorizados. */
-  catalogoProveedores(soloTalleres = false): Observable<ElementoCatalogo[]> {
+  /** Proveedores activos; con `tipo`, solo los de ese tipo (ej. talleres autorizados). */
+  catalogoProveedores(tipo?: TipoProveedor): Observable<ElementoCatalogo[]> {
     return this.http.get<ElementoCatalogo[]>(api('inventario-piezas/proveedores/catalogo'), {
-      params: soloTalleres ? new HttpParams().set('soloTalleres', true) : undefined,
+      params: tipo !== undefined ? new HttpParams().set('tipo', tipo) : undefined,
     });
   }
 

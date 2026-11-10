@@ -107,7 +107,7 @@ export class EntradaCombustible {
     const p = this.proveedores();
     if (p === 'error') return 'No se pudieron cargar los suplidores. Recargue la página.';
     if (Array.isArray(p) && p.length === 0) {
-      return 'No hay suplidores de combustible. Marque al proveedor como "Suplidor de combustible" en Proveedores.';
+      return 'No hay suplidores de combustible. Registre el proveedor en Proveedores con el tipo "Suplidor de combustible".';
     }
     return '';
   });
