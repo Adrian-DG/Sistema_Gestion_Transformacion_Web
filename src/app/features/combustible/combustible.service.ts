@@ -2,6 +2,7 @@ import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Paginado, SIN_AVISO_ERROR, api } from '../../core/api/api';
+import { ElementoCatalogo } from '../../core/catalogos/catalogos.service';
 import { AdjuntoNuevo } from '../asignaciones/asignaciones.service';
 
 export type EstatusSolicitudTicket = 'Pendiente' | 'Aprobada' | 'Cancelada' | 'Rechazada';
@@ -81,6 +82,19 @@ export interface SolicitudTicketCreada {
   numeros: string[];
 }
 
+/** Cuerpo de POST api/combustible/compras (RegistrarCompraCommand): entrada de combustible al depósito. */
+export interface NuevaEntradaCombustible {
+  tipoCombustible: TipoCombustible;
+  galones: number;
+  /** Fecha y hora local de la recepción, sin zona; nula = ahora. */
+  fecha: string | null;
+  /** Suplidor registrado en el sistema. */
+  proveedorId: string;
+  numeroFactura: string | null;
+  observacion: string | null;
+  adjuntos: AdjuntoNuevo[];
+}
+
 export interface FiltroSolicitudesTicket {
   pagina: number;
   tamano: number;
@@ -107,6 +121,16 @@ export class CombustibleService {
     return this.http.get<Paginado<SolicitudTicketResumen>>(api('combustible/solicitudes-ticket'), {
       params,
     });
+  }
+
+  /** Suplidores activos registrados en el sistema. */
+  proveedores(): Observable<ElementoCatalogo[]> {
+    return this.http.get<ElementoCatalogo[]>(api('combustible/proveedores'));
+  }
+
+  /** Registra la recepción de combustible; suma a la existencia del tipo indicado. */
+  registrarEntrada(entrada: NuevaEntradaCombustible): Observable<string> {
+    return this.http.post<string>(api('combustible/compras'), entrada, SIN_AVISO);
   }
 
   /** Número que recibiría el próximo ticket; referencial hasta registrar la solicitud. */

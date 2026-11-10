@@ -371,7 +371,7 @@ export class BuscadorSipffaa implements ControlValueAccessor {
         return this.sipffaa.buscarDepartamentos(texto, maximo, soloSipffaa).pipe(
           map((departamentos) =>
             departamentos.map((d) => ({
-              clave: `${d.codDepartamento}`,
+              clave: `${d.codInstitucion}-${d.codDepartamento}`,
               registrado: d.origen === 'Historico',
               titulo: d.nombre,
               detalle: d.departamentoPadre
@@ -385,7 +385,7 @@ export class BuscadorSipffaa implements ControlValueAccessor {
         return this.sipffaa.buscarCargos(texto, maximo, soloSipffaa).pipe(
           map((cargos) =>
             cargos.map((c) => ({
-              clave: `${c.codCargo}`,
+              clave: `${c.codInstitucion}-${c.codCargo}`,
               registrado: c.origen === 'Historico',
               titulo: c.nombre,
               // Los del histórico no traen ocupantes: no se sabe si está vacante.

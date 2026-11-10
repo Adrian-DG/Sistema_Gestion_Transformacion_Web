@@ -17,6 +17,7 @@ const TONOS: Record<string, Tono> = {
   'En garantía': 'verde',
   'Garantía vencida': 'gris',
   'Taller autorizado': 'azul',
+  'Suplidor de combustible': 'ambar',
   Externo: 'azul',
   Activa: 'verde',
   Pendiente: 'ambar',

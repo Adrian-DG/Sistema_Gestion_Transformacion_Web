@@ -84,6 +84,9 @@ const ESPERA_BUSQUEDA_MS = 350;
             @if (p.esTallerAutorizado) {
               <app-estado-badge estado="Taller autorizado" />
             }
+            @if (p.esSuplidorCombustible) {
+              <app-estado-badge estado="Suplidor de combustible" />
+            }
           </div>
         </ng-template>
         <ng-template appCelda="acciones" let-p>

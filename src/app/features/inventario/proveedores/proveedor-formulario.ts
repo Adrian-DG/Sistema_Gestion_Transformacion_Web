@@ -85,6 +85,20 @@ import { DatosProveedor, InventarioService } from '../inventario.service';
               </span>
             </span>
           </label>
+          <label class="flex cursor-pointer items-start gap-3 sm:col-span-2">
+            <input
+              type="checkbox"
+              class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
+              formControlName="esSuplidorCombustible"
+            />
+            <span>
+              <span class="block text-sm font-medium text-slate-800">Suplidor de combustible</span>
+              <span class="block text-xs text-slate-500">
+                Suple gasolina o gasoil. Solo estos proveedores se pueden elegir al registrar una
+                entrada de combustible.
+              </span>
+            </span>
+          </label>
           @if (esEdicion()) {
             <label class="flex cursor-pointer items-start gap-3 sm:col-span-2">
               <input
@@ -133,6 +147,7 @@ export class ProveedorFormulario {
     direccion: ['', Validators.maxLength(300)],
     contacto: ['', Validators.maxLength(150)],
     esTallerAutorizado: [false],
+    esSuplidorCombustible: [false],
     activo: [true],
   });
   protected readonly c = this.formulario.controls;
@@ -160,6 +175,7 @@ export class ProveedorFormulario {
           direccion: p.direccion ?? '',
           contacto: p.contacto ?? '',
           esTallerAutorizado: p.esTallerAutorizado,
+          esSuplidorCombustible: p.esSuplidorCombustible,
           activo: p.activo,
         });
       });
@@ -183,6 +199,7 @@ export class ProveedorFormulario {
       direccion: opcional(v.direccion),
       contacto: opcional(v.contacto),
       esTallerAutorizado: v.esTallerAutorizado,
+      esSuplidorCombustible: v.esSuplidorCombustible,
     };
 
     this.guardando.set(true);

@@ -68,6 +68,8 @@ export interface Proveedor {
   contacto: string | null;
   /** Taller autorizado (concesionario) para mantenimientos externos. */
   esTallerAutorizado: boolean;
+  /** Suple combustible: aparece al registrar una entrada de combustible. */
+  esSuplidorCombustible: boolean;
   activo: boolean;
 }
 

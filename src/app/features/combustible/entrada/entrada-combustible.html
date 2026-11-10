@@ -1,0 +1,237 @@
+<a
+  routerLink="/combustible"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Combustible
+</a>
+
+<app-encabezado-pagina
+  seccion="Combustible"
+  titulo="Registrar entrada de combustible"
+  descripcion="Recepción de combustible en el depósito. Los galones se suman a la existencia del tipo indicado."
+/>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="space-y-6">
+  @if (errorGeneral(); as mensaje) {
+    <div
+      class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      role="alert"
+    >
+      <app-icono nombre="error" [tamano]="18" class="mt-0.5" />
+      <span>{{ mensaje }}</span>
+    </div>
+  }
+
+  <!-- Combustible recibido -->
+  <section class="tarjeta" aria-labelledby="sec-combustible">
+    <h2
+      id="sec-combustible"
+      class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+    >
+      Combustible recibido
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <fieldset class="sm:col-span-2">
+        <legend class="mb-2 text-sm font-medium text-slate-700">
+          Tipo de combustible <span class="text-red-600" aria-hidden="true">*</span>
+        </legend>
+        <div class="grid gap-3 sm:grid-cols-2">
+          @for (tipo of combustibles; track tipo) {
+            @let actual = existenciaDe(tipo);
+            <label
+              class="flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 text-sm"
+              [class]="
+                v().tipoCombustible === tipo
+                  ? 'border-primario bg-primario/5 ring-1 ring-primario'
+                  : 'border-slate-200 hover:border-slate-300'
+              "
+            >
+              <input
+                type="radio"
+                class="accent-primario"
+                formControlName="tipoCombustible"
+                [value]="tipo"
+              />
+              <app-icono nombre="combustible" [tamano]="18" class="text-primario" />
+              <span class="flex-1">
+                <span class="block font-medium text-slate-900">{{ nombreCombustible[tipo] }}</span>
+                @if (actual) {
+                  <span class="block text-xs text-slate-500">
+                    Existencia: {{ actual.existencia | number: '1.0-2' }} gal
+                  </span>
+                }
+              </span>
+            </label>
+          }
+        </div>
+        @if (
+          formulario.controls.tipoCombustible.touched && formulario.controls.tipoCombustible.invalid
+        ) {
+          <p class="mt-1 text-xs text-red-700">Seleccione si se recibe gasolina o gasoil.</p>
+        }
+      </fieldset>
+
+      <app-campo
+        etiqueta="Galones recibidos"
+        para="galones"
+        [control]="formulario.controls.galones"
+        requerido
+      >
+        <input
+          id="galones"
+          type="number"
+          min="0.01"
+          step="0.01"
+          inputmode="decimal"
+          class="control"
+          formControlName="galones"
+        />
+      </app-campo>
+      <app-campo
+        etiqueta="Fecha y hora de recepción"
+        para="fecha"
+        [control]="formulario.controls.fecha"
+        requerido
+      >
+        <input
+          id="fecha"
+          type="datetime-local"
+          class="control"
+          [max]="maximaFecha"
+          formControlName="fecha"
+        />
+      </app-campo>
+
+      @if (resultado(); as r) {
+        <p
+          class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:col-span-2"
+        >
+          Existencia de {{ nombreCombustible[v().tipoCombustible!] }}:
+          {{ r.actual | number: '1.0-2' }} gal →
+          <span class="font-semibold text-slate-900">{{ r.final | number: '1.0-2' }} gal</span>
+          al registrar esta entrada.
+        </p>
+      }
+    </div>
+  </section>
+
+  <!-- Suplidor y factura -->
+  <section class="tarjeta" aria-labelledby="sec-suplidor">
+    <h2 id="sec-suplidor" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+      Suplidor y factura
+    </h2>
+    <div class="grid gap-5 p-5 sm:grid-cols-2">
+      <app-campo
+        etiqueta="Suplidor"
+        para="proveedorId"
+        [control]="formulario.controls.proveedorId"
+        [ayuda]="ayudaProveedor()"
+        requerido
+      >
+        <select id="proveedorId" class="control" formControlName="proveedorId">
+          <option [ngValue]="null" disabled>
+            {{ proveedores() === null ? 'Cargando suplidores…' : 'Seleccione…' }}
+          </option>
+          @for (p of listaProveedores(); track p.id) {
+            <option [ngValue]="p.id">{{ p.nombre }}</option>
+          }
+        </select>
+        @if (puedeGestionarProveedores()) {
+          <a
+            routerLink="/proveedores"
+            class="mt-1 inline-block text-xs text-primario hover:underline"
+          >
+            Gestionar suplidores
+          </a>
+        }
+      </app-campo>
+      <app-campo
+        etiqueta="Número de factura o conduce"
+        para="numeroFactura"
+        [control]="formulario.controls.numeroFactura"
+      >
+        <input id="numeroFactura" class="control" formControlName="numeroFactura" />
+      </app-campo>
+      <app-campo
+        etiqueta="Observación"
+        para="observacion"
+        [control]="formulario.controls.observacion"
+        class="sm:col-span-2"
+      >
+        <textarea
+          id="observacion"
+          rows="3"
+          class="control"
+          formControlName="observacion"
+        ></textarea>
+      </app-campo>
+    </div>
+  </section>
+
+  <!-- Documentos -->
+  <section class="tarjeta" aria-labelledby="sec-adjuntos">
+    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+      <div>
+        <h2 id="sec-adjuntos" class="font-semibold text-slate-900">Documentos</h2>
+        <p class="text-xs text-slate-500">Opcional, ej. la factura o el conduce del suplidor.</p>
+      </div>
+      <button type="button" class="btn btn-texto btn-sm" (click)="agregarAdjunto()">
+        <app-icono nombre="mas" [tamano]="16" /> Agregar
+      </button>
+    </header>
+    @if (adjuntos.length > 0) {
+      <div class="space-y-4 p-5" formArrayName="adjuntos">
+        @for (adjunto of adjuntos.controls; track adjunto; let i = $index) {
+          <div class="grid gap-4 sm:grid-cols-3" [formGroupName]="i">
+            <app-campo
+              etiqueta="Tipo de documento"
+              [para]="'tipoDocumento' + i"
+              [control]="adjunto.controls.tipoDocumentoId"
+              requerido
+            >
+              <select [id]="'tipoDocumento' + i" class="control" formControlName="tipoDocumentoId">
+                <option [ngValue]="null" disabled>Seleccione…</option>
+                @for (t of tiposDocumento(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.nombre }}</option>
+                }
+              </select>
+            </app-campo>
+            <app-campo
+              etiqueta="Archivo"
+              [para]="'archivo' + i"
+              [control]="adjunto.controls.archivo"
+              class="sm:col-span-2"
+              requerido
+            >
+              <div class="flex items-start gap-2">
+                <app-selector-archivo
+                  class="flex-1"
+                  [idControl]="'archivo' + i"
+                  formControlName="archivo"
+                />
+                <button
+                  type="button"
+                  class="btn btn-texto btn-sm mt-2"
+                  (click)="quitarAdjunto(i)"
+                  [attr.aria-label]="'Quitar documento ' + (i + 1)"
+                >
+                  <app-icono nombre="cerrar" [tamano]="16" />
+                </button>
+              </div>
+            </app-campo>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <a routerLink="/combustible" class="btn btn-contorno">Cancelar</a>
+    <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+      @if (guardando()) {
+        <app-cargando class="text-current" />
+      }
+      Registrar entrada
+    </button>
+  </div>
+</form>

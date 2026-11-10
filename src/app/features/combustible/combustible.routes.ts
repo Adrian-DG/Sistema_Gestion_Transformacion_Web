@@ -13,4 +13,9 @@ export const COMBUSTIBLE_ROUTES: Routes = [
     loadComponent: () =>
       import('./formulario/solicitud-ticket-formulario').then((m) => m.SolicitudTicketFormulario),
   },
+  {
+    path: 'entrada',
+    title: 'Registrar entrada de combustible',
+    loadComponent: () => import('./entrada/entrada-combustible').then((m) => m.EntradaCombustible),
+  },
 ];
