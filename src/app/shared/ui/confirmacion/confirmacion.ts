@@ -38,6 +38,17 @@ import { Icono } from '../icono/icono';
                 {{ d.titulo }}
               </h2>
               <p class="mt-1 text-sm text-slate-600">{{ d.mensaje }}</p>
+              @if (d.detalles?.length) {
+                <ul class="mt-3 space-y-2 text-sm">
+                  @for (detalle of d.detalles; track $index) {
+                    <li
+                      class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900"
+                    >
+                      {{ detalle }}
+                    </li>
+                  }
+                </ul>
+              }
 
               @if (d.motivo; as m) {
                 <label

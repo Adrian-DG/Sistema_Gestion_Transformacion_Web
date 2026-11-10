@@ -73,7 +73,18 @@ export interface NuevaAsignacion {
   fechaSalida: string;
   fechaRetornoEstimada: string;
   adjuntos: AdjuntoNuevo[];
+  /** Acepta las advertencias (mantenimiento pendiente, póliza) mostradas al usuario. */
+  confirmarAdvertencias?: boolean;
 }
+
+/** Algo a revisar antes de asignar; no impide la asignación si se confirma. */
+export interface AdvertenciaAsignacion {
+  codigo: 'MantenimientoPendiente' | 'SinPoliza' | 'PolizaVencida' | 'PolizaVencePronto';
+  mensaje: string;
+}
+
+/** Código de la API cuando faltan advertencias por confirmar. */
+export const REQUIERE_CONFIRMACION = 'Asignacion.RequiereConfirmacion';
 
 export interface FiltroAsignaciones {
   pagina: number;
@@ -108,8 +119,25 @@ export class AsignacionesService {
     return this.http.post<string>(api('asignaciones'), asignacion, SIN_AVISO);
   }
 
-  aprobar(id: string): Observable<void> {
-    return this.http.post<void>(api(`asignaciones/${id}/aprobar`), null);
+  /** Con advertencias sin confirmar la API responde 409 (REQUIERE_CONFIRMACION). */
+  aprobar(id: string, confirmarAdvertencias = false): Observable<void> {
+    const params = confirmarAdvertencias ? new HttpParams().set('confirmar', true) : undefined;
+    return this.http.post<void>(api(`asignaciones/${id}/aprobar`), null, { params });
+  }
+
+  /** Mantenimiento pendiente y póliza del vehículo para el período. */
+  advertencias(
+    vehiculoId: string,
+    salida: string,
+    retornoEstimado: string,
+  ): Observable<AdvertenciaAsignacion[]> {
+    return this.http.get<AdvertenciaAsignacion[]>(api('asignaciones/advertencias'), {
+      params: new HttpParams()
+        .set('vehiculoId', vehiculoId)
+        .set('salida', salida)
+        .set('retornoEstimado', retornoEstimado),
+      ...SIN_AVISO,
+    });
   }
 
   rechazar(id: string, motivo: string): Observable<void> {

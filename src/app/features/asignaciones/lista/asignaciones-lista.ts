@@ -115,12 +115,25 @@ export class AsignacionesLista {
   }
 
   protected async aprobar(a: AsignacionResumen): Promise<void> {
+    // Mantenimiento pendiente o póliza: se muestran para que el aprobador decida.
+    const advertencias = await firstValueFrom(
+      this.asignaciones
+        .advertencias(a.vehiculoId, a.fechaSalida, a.fechaRetornoEstimada)
+        .pipe(catchError(() => of([]))),
+    );
     const confirmado = await this.dialogos.confirmar({
-      titulo: 'Aprobar asignación',
+      titulo: advertencias.length ? 'Aprobar asignación con advertencias' : 'Aprobar asignación',
       mensaje: `El vehículo ${a.placa} quedará reservado para ${a.asignadoA} durante el período solicitado.`,
-      textoConfirmar: 'Aprobar',
+      detalles: advertencias.map((x) => x.mensaje),
+      textoConfirmar: advertencias.length ? 'Aprobar de todos modos' : 'Aprobar',
     });
-    if (confirmado) await this.ejecutar(a, this.asignaciones.aprobar(a.id), 'Asignación aprobada.');
+    if (confirmado) {
+      await this.ejecutar(
+        a,
+        this.asignaciones.aprobar(a.id, advertencias.length > 0),
+        'Asignación aprobada.',
+      );
+    }
   }
 
   protected async rechazar(a: AsignacionResumen): Promise<void> {

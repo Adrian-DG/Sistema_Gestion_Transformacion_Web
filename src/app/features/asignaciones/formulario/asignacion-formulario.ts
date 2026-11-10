@@ -44,7 +44,14 @@ import { cargoDe, departamentoDe } from '../../../shared/sipffaa/datos-miembro';
 import { Cargando } from '../../../shared/ui/cargando/cargando';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { AsignacionesService, NuevaAsignacion, TIPO_ASIGNACION } from '../asignaciones.service';
+import {
+  AdvertenciaAsignacion,
+  AsignacionesService,
+  NuevaAsignacion,
+  REQUIERE_CONFIRMACION,
+  TIPO_ASIGNACION,
+} from '../asignaciones.service';
+import { DialogosService } from '../../../core/dialogos/dialogos.service';
 
 type Adjunto = FormGroup<{
   tipoDocumentoId: FormControl<string | null>;
@@ -86,6 +93,7 @@ export class AsignacionFormulario {
   private readonly catalogos = inject(CatalogosService);
   private readonly notificaciones = inject(NotificacionesService);
   private readonly router = inject(Router);
+  private readonly dialogos = inject(DialogosService);
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly tipos = TIPO_ASIGNACION;
@@ -118,6 +126,8 @@ export class AsignacionFormulario {
   );
 
   protected readonly vehiculos = signal<ElementoCatalogo[]>([]);
+  /** Mantenimiento pendiente y póliza del vehículo elegido para el período. */
+  protected readonly advertencias = signal<AdvertenciaAsignacion[]>([]);
   protected readonly cargandoVehiculos = signal(false);
   protected readonly guardando = signal(false);
   protected readonly errorGeneral = signal<string | null>(null);
@@ -197,6 +207,37 @@ export class AsignacionFormulario {
         this.cargandoVehiculos.set(false);
         if (!vehiculos.some((v) => v.id === c.vehiculoId.value)) c.vehiculoId.setValue(null);
       });
+
+    // Al elegir el vehículo (o cambiar el período) se consultan sus advertencias.
+    merge(
+      c.vehiculoId.valueChanges,
+      c.fechaSalida.valueChanges,
+      c.fechaRetornoEstimada.valueChanges,
+    )
+      .pipe(
+        debounceTime(300),
+        map(() => [c.vehiculoId.value, c.fechaSalida.value, c.fechaRetornoEstimada.value] as const),
+        switchMap(([vehiculoId, salida, retorno]) =>
+          vehiculoId && salida && retorno && retorno > salida
+            ? this.asignaciones
+                .advertencias(vehiculoId, salida, retorno)
+                .pipe(catchError(() => of([])))
+            : of([]),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((advertencias) => this.advertencias.set(advertencias));
+  }
+
+  private confirmarAdvertencias(detalles: string[]): Promise<boolean> {
+    return this.dialogos.confirmar({
+      titulo: 'Revise antes de registrar',
+      mensaje:
+        'El vehículo elegido tiene las siguientes advertencias. ¿Desea registrar la asignación de todos modos?',
+      detalles,
+      textoConfirmar: 'Registrar de todos modos',
+      textoCancelar: 'Revisar',
+    });
   }
 
   protected get adjuntos(): FormArray<Adjunto> {
@@ -278,11 +319,43 @@ export class AsignacionFormulario {
         })),
       };
 
+      // Las advertencias del vehículo se confirman antes de enviar.
+      const advertencias = this.advertencias();
+      if (
+        advertencias.length > 0 &&
+        !(await this.confirmarAdvertencias(advertencias.map((x) => x.mensaje)))
+      ) {
+        return;
+      }
+      asignacion.confirmarAdvertencias = advertencias.length > 0;
+
       try {
         await firstValueFrom(this.asignaciones.crear(asignacion));
       } catch (e) {
-        this.errorGeneral.set(aplicarErroresServidor(this.formulario, e));
-        return;
+        // Pudo surgir una advertencia nueva entre la consulta y el registro: se pide confirmarla.
+        if (
+          esApiError(e) &&
+          e.codigo === REQUIERE_CONFIRMACION &&
+          !asignacion.confirmarAdvertencias
+        ) {
+          if (
+            !(await this.confirmarAdvertencias([
+              e.mensaje.replace(/^Confirme para continuar:\s*/, ''),
+            ]))
+          )
+            return;
+          try {
+            await firstValueFrom(
+              this.asignaciones.crear({ ...asignacion, confirmarAdvertencias: true }),
+            );
+          } catch (e2) {
+            this.errorGeneral.set(aplicarErroresServidor(this.formulario, e2));
+            return;
+          }
+        } else {
+          this.errorGeneral.set(aplicarErroresServidor(this.formulario, e));
+          return;
+        }
       }
 
       this.notificaciones.exito('Asignación registrada. Queda pendiente de aprobación.');

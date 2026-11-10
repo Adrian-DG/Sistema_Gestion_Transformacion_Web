@@ -3,6 +3,8 @@ import { Injectable, signal } from '@angular/core';
 export interface OpcionesDialogo {
   titulo: string;
   mensaje: string;
+  /** Puntos a revisar antes de confirmar (ej. advertencias); se muestran como lista. */
+  detalles?: string[];
   textoConfirmar?: string;
   textoCancelar?: string;
   /** "peligro" para acciones destructivas o irreversibles (rechazar, cancelar, desactivar). */
