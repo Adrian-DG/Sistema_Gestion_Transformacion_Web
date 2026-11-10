@@ -149,18 +149,80 @@
             }
           </select>
         </app-campo>
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-ingreso">
+      <h2 id="sec-ingreso" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        Ingreso a la flota
+      </h2>
+      <div class="grid gap-5 p-5 sm:grid-cols-2">
+        @if (ingreso(); as i) {
+          <dl class="grid grid-cols-3 gap-4 text-sm sm:col-span-2">
+            <div>
+              <dt class="text-xs text-slate-500">Condición</dt>
+              <dd class="font-medium text-slate-900">
+                {{ i.condicion === condiciones.Nuevo ? 'Nuevo' : 'Usado' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">Kilometraje de ingreso</dt>
+              <dd class="font-medium text-slate-900">{{ i.kilometraje | number }} km</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">Fecha de ingreso</dt>
+              <dd class="font-medium text-slate-900">{{ i.fecha | date: 'dd/MM/y' }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <fieldset class="sm:col-span-2">
+            <legend class="mb-2 text-sm font-medium text-slate-700">
+              Condición <span class="text-red-600" aria-hidden="true">*</span>
+            </legend>
+            <div class="flex flex-wrap gap-4 text-sm">
+              <label class="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  class="accent-primario"
+                  formControlName="condicion"
+                  [value]="condiciones.Nuevo"
+                />
+                Nuevo (0 km)
+              </label>
+              <label class="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  class="accent-primario"
+                  formControlName="condicion"
+                  [value]="condiciones.Usado"
+                />
+                Usado
+              </label>
+            </div>
+            @if (c.condicion.touched && c.condicion.invalid) {
+              <p class="mt-1 text-xs text-red-700">Indique si el vehículo es nuevo o usado.</p>
+            }
+          </fieldset>
+        }
         <app-campo
-          etiqueta="Kilometraje"
+          [etiqueta]="esEdicion() ? 'Kilometraje actual' : 'Kilometraje inicial'"
           para="kilometraje"
           [control]="c.kilometraje"
           requerido
-          ayuda="Al registrarlo; luego lo actualiza cada ingreso al taller."
+          [ayuda]="
+            esEdicion()
+              ? 'No puede ser menor que ' +
+                (kilometrajeGuardado() | number) +
+                ' km. También lo actualiza cada ingreso al taller.'
+              : 'El que marca el odómetro al recibirlo; 0 si es nuevo.'
+          "
         >
           <input
             id="kilometraje"
             type="number"
-            min="0"
+            [min]="esEdicion() ? kilometrajeGuardado() : 0"
             step="1"
+            inputmode="numeric"
             class="control"
             formControlName="kilometraje"
           />
@@ -183,22 +245,38 @@
         }
       </header>
       <div class="space-y-5 p-5">
-        <label class="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            class="mt-0.5 size-4 rounded border-slate-300 accent-primario"
-            formControlName="conGarantia"
-          />
-          <span>
-            <span class="block text-sm font-medium text-slate-800">
-              El vehículo tiene garantía del fabricante
-            </span>
-            <span class="block text-xs text-slate-500">
-              Vence en la fecha o al llegar al kilometraje límite, lo que ocurra primero.
-            </span>
-          </span>
-        </label>
-        @if (c.conGarantia.value) {
+        <fieldset>
+          <legend class="text-sm font-medium text-slate-700">
+            ¿Tiene garantía del fabricante? <span class="text-red-600" aria-hidden="true">*</span>
+          </legend>
+          <p class="mb-2 text-xs text-slate-500">
+            Vence en la fecha o al llegar al kilometraje límite, lo que ocurra primero.
+          </p>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <label class="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                class="accent-primario"
+                formControlName="tieneGarantia"
+                [value]="true"
+              />
+              Sí
+            </label>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                class="accent-primario"
+                formControlName="tieneGarantia"
+                [value]="false"
+              />
+              No
+            </label>
+          </div>
+          @if (c.tieneGarantia.touched && c.tieneGarantia.invalid) {
+            <p class="mt-1 text-xs text-red-700">Indique si el vehículo tiene garantía.</p>
+          }
+        </fieldset>
+        @if (v().tieneGarantia) {
           <div class="grid gap-5 sm:grid-cols-3">
             <app-campo
               etiqueta="Vence el"
@@ -210,6 +288,7 @@
                 id="garantiaVence"
                 type="date"
                 class="control"
+                [min]="esEdicion() ? null : hoy"
                 formControlName="garantiaVence"
               />
             </app-campo>
@@ -232,7 +311,7 @@
               etiqueta="Taller autorizado"
               para="garantiaTallerId"
               [control]="c.garantiaTallerId"
-              ayuda="Proveedores marcados como taller autorizado."
+              ayuda="Proveedores de tipo taller autorizado."
             >
               <select id="garantiaTallerId" class="control" formControlName="garantiaTallerId">
                 <option [ngValue]="null">Sin indicar</option>
@@ -241,6 +320,42 @@
                 }
               </select>
             </app-campo>
+          </div>
+          @for (mensaje of [erroresGarantia()['vence'], erroresGarantia()['km']]; track $index) {
+            @if (mensaje) {
+              <p class="text-xs text-red-700" role="alert">{{ mensaje }}</p>
+            }
+          }
+        }
+      </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="sec-fotos">
+      <header class="border-b border-slate-200 px-5 py-3">
+        <h2 id="sec-fotos" class="font-semibold text-slate-900">Fotografías</h2>
+        <p class="text-xs text-slate-500">
+          @if (esEdicion()) {
+            Tome una foto nueva solo de las vistas que quiera reemplazar; las anteriores quedan en
+            el historial.
+          } @else {
+            Obligatorias: frente, ambos lados y trasera. En un teléfono o tableta se abre la cámara.
+          }
+        </p>
+      </header>
+      <div class="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4" formGroupName="fotos">
+        @for (vista of vistas; track vista.valor) {
+          <div>
+            <app-captura-foto
+              [etiqueta]="vista.nombre"
+              [idControl]="'foto-' + vista.clave"
+              [actual]="fotosGuardadas()[vista.clave] ?? null"
+              [formControlName]="vista.clave"
+            />
+            @if (c.fotos.controls[vista.clave].touched && c.fotos.controls[vista.clave].invalid) {
+              <p class="mt-1 text-xs text-red-700">
+                Falta la foto: {{ vista.nombre | lowercase }}.
+              </p>
+            }
           </div>
         }
       </div>
