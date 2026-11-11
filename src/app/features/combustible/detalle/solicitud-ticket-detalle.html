@@ -1,0 +1,256 @@
+<a
+  routerLink="/combustible"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Combustible
+</a>
+
+@if (cargando()) {
+  <div class="flex justify-center p-10"><app-cargando /></div>
+} @else if (noEncontrada()) {
+  <div class="tarjeta p-6 text-sm text-slate-600">No se encontró la solicitud de tickets.</div>
+} @else if (detalle(); as d) {
+  <app-encabezado-pagina
+    seccion="Combustible"
+    titulo="Solicitud de tickets"
+    [descripcion]="
+      d.tickets.length +
+      ' ticket(s) · ' +
+      (d.totalGalones | number: '1.0-2') +
+      ' gal · solicitada el ' +
+      (d.fechaSolicitud | date: 'dd/MM/y')
+    "
+  >
+    <app-estado-badge [estado]="d.estatus" />
+    @if (puedeImprimir()) {
+      <button
+        type="button"
+        class="btn btn-contorno"
+        [disabled]="imprimiendo()"
+        (click)="imprimir()"
+      >
+        <app-icono nombre="descargar" [tamano]="18" /> Imprimir tickets
+      </button>
+    }
+  </app-encabezado-pagina>
+
+  @if (d.motivoRechazoCancelacion) {
+    <p class="mb-6 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+      <span class="font-medium">Motivo ({{ d.estatus | lowercase }}):</span>
+      {{ d.motivoRechazoCancelacion }}
+    </p>
+  }
+
+  <div class="mb-6 grid gap-6 lg:grid-cols-2">
+    <!-- Asignación -->
+    <section class="tarjeta" aria-labelledby="sec-asignacion">
+      <h2
+        id="sec-asignacion"
+        class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+      >
+        Asignación
+      </h2>
+      <dl class="grid gap-4 p-5 text-sm sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <dt class="text-slate-500">
+            Asignado a {{ d.tipoBeneficiario === 'Cargo' ? '(cargo)' : '(persona)' }}
+          </dt>
+          <dd class="text-base font-medium text-slate-900">{{ d.entregadoA || '—' }}</dd>
+          @if (d.entregadoACedula || d.entregadoARango) {
+            <dd class="text-xs text-slate-500">
+              @if (d.entregadoARango) {
+                {{ d.entregadoARango }}
+              }
+              @if (d.entregadoACedula) {
+                · <span class="font-mono">{{ d.entregadoACedula }}</span>
+              }
+            </dd>
+          }
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-slate-500">Propósito</dt>
+          <dd class="whitespace-pre-line text-slate-900">{{ d.proposito }}</dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Solicitante</dt>
+          <dd class="text-slate-900">{{ d.solicitante }}</dd>
+          <dd class="font-mono text-xs text-slate-500">{{ d.solicitanteCedula }}</dd>
+          <dd class="text-xs text-slate-500">
+            {{ d.cargoSolicitante }} · {{ d.dependenciaSolicitante }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Registro</dt>
+          <dd class="text-slate-900">{{ d.fechaSolicitud | date: 'dd/MM/y h:mm a' }}</dd>
+          @if (d.registradoPor) {
+            <dd class="text-xs text-slate-500">por {{ d.registradoPor }}</dd>
+          }
+          @if (d.fechaAprobacion) {
+            <dd class="mt-1 text-slate-900">
+              Aprobada el {{ d.fechaAprobacion | date: 'dd/MM/y h:mm a' }}
+            </dd>
+            @if (d.aprobadoPor) {
+              <dd class="text-xs text-slate-500">por {{ d.aprobadoPor }}</dd>
+            }
+          }
+        </div>
+      </dl>
+    </section>
+
+    <!-- Combustible por tipo -->
+    <section class="tarjeta" aria-labelledby="sec-resumen">
+      <h2 id="sec-resumen" class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900">
+        Combustible asignado
+      </h2>
+      <div class="space-y-5 p-5">
+        @for (r of d.resumen; track r.tipoCombustible) {
+          <div>
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="flex items-center gap-2 font-medium text-slate-900">
+                <app-icono nombre="combustible" [tamano]="18" class="text-primario" />
+                {{ r.tipoCombustible }}
+              </p>
+              <p class="text-lg font-semibold text-slate-900">
+                {{ r.galones | number: '1.0-2' }}
+                <span class="text-sm font-normal text-slate-500"
+                  >gal en {{ r.tickets }} ticket(s)</span
+                >
+              </p>
+            </div>
+            <div
+              class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"
+              role="progressbar"
+              [attr.aria-label]="'Galones de ' + r.tipoCombustible + ' utilizados'"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="r.galones"
+              [attr.aria-valuenow]="r.galonesUtilizados"
+            >
+              <div
+                class="h-full rounded-full bg-primario"
+                [style.width.%]="porcentaje(r.galonesUtilizados, r.galones)"
+              ></div>
+            </div>
+            <p class="mt-1 text-xs text-slate-600">
+              Utilizado {{ r.galonesUtilizados | number: '1.0-2' }} gal ({{
+                r.ticketsUtilizados
+              }}
+              ticket{{ r.ticketsUtilizados === 1 ? '' : 's' }}) · Sin utilizar
+              {{ r.galonesPendientes | number: '1.0-2' }} gal ({{ r.ticketsPendientes }})
+              @if (r.ticketsAnulados) {
+                · Anulados {{ r.ticketsAnulados }}
+              }
+            </p>
+          </div>
+        }
+        <p class="border-t border-slate-100 pt-3 text-sm text-slate-700">
+          Total: <span class="font-semibold">{{ d.totalGalones | number: '1.0-2' }} gal</span> ·
+          utilizado {{ d.galonesUtilizados | number: '1.0-2' }} gal
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Tickets -->
+  <section class="tarjeta mb-6 overflow-hidden" aria-labelledby="sec-tickets">
+    <header
+      class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3"
+    >
+      <h2 id="sec-tickets" class="font-semibold text-slate-900">Tickets generados</h2>
+      <div class="flex flex-wrap gap-1" role="group" aria-label="Filtrar tickets">
+        @for (f of filtros; track f) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primario]="filtro() === f"
+            [class.btn-texto]="filtro() !== f"
+            [attr.aria-pressed]="filtro() === f"
+            (click)="filtro.set(f)"
+          >
+            {{ f }} ({{ cantidad(f) }})
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (ticketsFiltrados().length === 0) {
+      <p class="p-5 text-sm text-slate-500">No hay tickets {{ filtro().toLowerCase() }}.</p>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead
+            class="bg-slate-50 text-left text-xs font-medium tracking-wide text-slate-500 uppercase"
+          >
+            <tr>
+              <th scope="col" class="px-5 py-2">Número</th>
+              <th scope="col" class="px-5 py-2">Combustible</th>
+              <th scope="col" class="px-5 py-2 text-right">Galones</th>
+              <th scope="col" class="px-5 py-2">Estado</th>
+              <th scope="col" class="px-5 py-2">Uso</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (t of ticketsFiltrados(); track t.id) {
+              <tr>
+                <td class="px-5 py-3 font-mono font-semibold whitespace-nowrap text-slate-900">
+                  {{ t.numero }}
+                </td>
+                <td class="px-5 py-3">{{ t.tipoCombustible }}</td>
+                <td class="px-5 py-3 text-right tabular-nums">{{ t.galones | number: '1.0-2' }}</td>
+                <td class="px-5 py-3"><app-estado-badge [estado]="t.estatus" /></td>
+                <td class="px-5 py-3">
+                  @if (t.estatus === 'Utilizado') {
+                    <span class="block whitespace-nowrap text-slate-900">
+                      {{ t.fechaUso | date: 'dd/MM/y h:mm a' }}
+                    </span>
+                    <span class="block text-xs text-slate-500">
+                      Operador: {{ t.despachadoPor || '—' }}
+                      @if (t.receptorNombre) {
+                        · Recibió: {{ t.receptorNombre }}
+                      }
+                    </span>
+                  } @else if (t.estatus === 'Anulado') {
+                    <span class="text-slate-500">Anulado, no se puede utilizar</span>
+                  } @else if (t.estatus === 'Reservado') {
+                    <span class="text-slate-500">Pendiente de aprobación</span>
+                  } @else {
+                    <span class="text-slate-500">Sin utilizar</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <!-- Documentos -->
+  @if (d.adjuntos.length) {
+    <section class="tarjeta" aria-labelledby="sec-documentos">
+      <h2
+        id="sec-documentos"
+        class="border-b border-slate-200 px-5 py-3 font-semibold text-slate-900"
+      >
+        Documentos
+      </h2>
+      <ul class="divide-y divide-slate-100">
+        @for (a of d.adjuntos; track a.id) {
+          <li class="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+            <span class="flex min-w-0 items-center gap-2">
+              <app-icono nombre="archivo" [tamano]="18" class="shrink-0 text-slate-400" />
+              <span class="min-w-0">
+                <span class="block truncate text-slate-900">{{ a.nombreArchivo }}</span>
+                @if (a.tipoDocumento) {
+                  <span class="block text-xs text-slate-500">{{ a.tipoDocumento }}</span>
+                }
+              </span>
+            </span>
+            <button type="button" class="btn btn-texto btn-sm" (click)="verAdjunto(a)">
+              <app-icono nombre="ver" [tamano]="16" /> Ver
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

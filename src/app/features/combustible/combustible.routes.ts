@@ -18,10 +18,24 @@ export const COMBUSTIBLE_ROUTES: Routes = [
       import('./formulario/solicitud-ticket-formulario').then((m) => m.SolicitudTicketFormulario),
   },
   {
+    path: 'despacho',
+    canActivate: [permisoGuard],
+    data: { permisos: [Permiso.DespachoCombustible] },
+    title: 'Despacho de combustible',
+    loadComponent: () =>
+      import('./despacho/despacho-combustible').then((m) => m.DespachoCombustible),
+  },
+  {
     path: 'entrada',
     canActivate: [permisoGuard],
     data: { permisos: [Permiso.GestionCombustible] },
     title: 'Registrar entrada de combustible',
     loadComponent: () => import('./entrada/entrada-combustible').then((m) => m.EntradaCombustible),
+  },
+  {
+    path: ':id',
+    title: 'Solicitud de tickets',
+    loadComponent: () =>
+      import('./detalle/solicitud-ticket-detalle').then((m) => m.SolicitudTicketDetalle),
   },
 ];

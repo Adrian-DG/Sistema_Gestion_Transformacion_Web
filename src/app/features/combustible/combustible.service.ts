@@ -42,6 +42,46 @@ export interface Ticket {
   fechaUso: string | null;
 }
 
+/** Ticket leído en el despacho. */
+export interface TicketDespacho {
+  id: string;
+  numero: string;
+  tipoCombustible: 'Gasolina' | 'Gasoil';
+  galones: number;
+  estatus: EstatusTicket;
+  entregadoA: string | null;
+  proposito: string | null;
+  /** Se escribió solo el número: falta el código de verificación impreso en el ticket. */
+  requiereCodigoVerificacion: boolean;
+  fechaUso: string | null;
+  despachadoPor: string | null;
+  receptorNombre: string | null;
+}
+
+/** Ticket despachado: fecha y hora del servidor y operador que lo despachó. */
+export interface DespachoTicket {
+  movimientoId: string;
+  numero: string;
+  tipoCombustible: 'Gasolina' | 'Gasoil';
+  galones: number;
+  fechaUso: string;
+  entregadoA: string | null;
+  receptorNombre: string | null;
+  despachadoPor: string | null;
+}
+
+/**
+ * Lo leído por un lector configurado con otra distribución de teclado puede traer otros separadores
+ * (ej. "TC'2026'000001'K7QX3M"): se normaliza a mayúsculas con guiones.
+ */
+export function normalizarCodigoTicket(texto: string): string {
+  return texto
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export interface SolicitudTicketResumen {
   id: string;
   estatus: EstatusSolicitudTicket;
@@ -58,6 +98,43 @@ export interface SolicitudTicketResumen {
   motivoRechazoCancelacion: string | null;
   totalGalones: number;
   tickets: Ticket[];
+}
+
+/** Ticket de una solicitud con los datos de su uso. */
+export interface TicketDetalle extends Ticket {
+  despachadoPor: string | null;
+  receptorNombre: string | null;
+}
+
+/** Totales de una solicitud por tipo de combustible. */
+export interface ResumenCombustible {
+  tipoCombustible: 'Gasolina' | 'Gasoil';
+  tickets: number;
+  galones: number;
+  ticketsUtilizados: number;
+  galonesUtilizados: number;
+  /** Disponibles o reservados: aún pueden canjearse. */
+  ticketsPendientes: number;
+  galonesPendientes: number;
+  ticketsAnulados: number;
+}
+
+export interface AdjuntoSolicitudTicket {
+  id: string;
+  nombreArchivo: string;
+  contentType: string;
+  tipoDocumento: string | null;
+}
+
+/** GET api/combustible/solicitudes-ticket/{id}. */
+export interface SolicitudTicketDetalle extends Omit<SolicitudTicketResumen, 'tickets'> {
+  entregadoARango: string | null;
+  registradoPor: string | null;
+  aprobadoPor: string | null;
+  galonesUtilizados: number;
+  resumen: ResumenCombustible[];
+  tickets: TicketDetalle[];
+  adjuntos: AdjuntoSolicitudTicket[];
 }
 
 /** Cuerpo de POST api/combustible/solicitudes-ticket. Los números de ticket los genera la API. */
@@ -147,6 +224,15 @@ export class CombustibleService {
   }
 
   /** Los tickets pasan a Disponible y comprometen la existencia. */
+  /** Detalle de la solicitud con cada ticket y su uso. */
+  solicitud(id: string): Observable<SolicitudTicketDetalle> {
+    return this.http.get<SolicitudTicketDetalle>(api(`combustible/solicitudes-ticket/${id}`));
+  }
+
+  adjunto(id: string): Observable<Blob> {
+    return this.http.get(api(`combustible/adjuntos/${id}`), { responseType: 'blob' });
+  }
+
   aprobar(id: string): Observable<void> {
     return this.http.post<void>(api(`combustible/solicitudes-ticket/${id}/aprobar`), null);
   }
@@ -157,5 +243,36 @@ export class CombustibleService {
 
   cancelar(id: string, motivo: string): Observable<void> {
     return this.http.post<void>(api(`combustible/solicitudes-ticket/${id}/cancelar`), { motivo });
+  }
+
+  /** PDF con los tickets disponibles de una solicitud aprobada, con su código de barras. */
+  imprimirTickets(id: string): Observable<Blob> {
+    return this.http.get(api(`combustible/solicitudes-ticket/${id}/tickets-pdf`), {
+      responseType: 'blob',
+    });
+  }
+
+  // Despacho
+
+  /** Ticket por lo escaneado (número y código de verificación) o por su número escrito. */
+  ticketDespacho(codigo: string): Observable<TicketDespacho> {
+    return this.http.get<TicketDespacho>(api('combustible/tickets/despacho'), {
+      params: new HttpParams().set('codigo', normalizarCodigoTicket(codigo)),
+      ...SIN_AVISO,
+    });
+  }
+
+  /** Despacha el ticket: la API registra la fecha y hora y el operador. */
+  despachar(codigo: string, receptorNombre: string | null): Observable<DespachoTicket> {
+    return this.http.post<DespachoTicket>(
+      api('combustible/tickets/despachar'),
+      { codigo: normalizarCodigoTicket(codigo), receptorNombre },
+      SIN_AVISO,
+    );
+  }
+
+  /** Tickets despachados hoy, el más reciente primero. */
+  despachosDeHoy(): Observable<DespachoTicket[]> {
+    return this.http.get<DespachoTicket[]>(api('combustible/despachos-ticket'));
   }
 }

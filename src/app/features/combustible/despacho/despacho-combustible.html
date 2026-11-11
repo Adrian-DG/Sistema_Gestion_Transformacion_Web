@@ -1,0 +1,295 @@
+<a
+  routerLink="/combustible"
+  class="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-primario"
+>
+  <app-icono nombre="izquierda" [tamano]="16" /> Combustible
+</a>
+
+<app-encabezado-pagina
+  seccion="Operaciones"
+  titulo="Despacho de combustible"
+  descripcion="Escanee el ticket, revise sus datos y confirme. Se registran la fecha y hora del despacho y el operador."
+/>
+
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="space-y-4 lg:col-span-3">
+    <!-- Escaneo -->
+    <section class="tarjeta p-5" aria-labelledby="sec-escaneo">
+      <h2 id="sec-escaneo" class="sr-only">Escanear ticket</h2>
+      <form (submit)="$event.preventDefault(); buscar()" class="space-y-2">
+        <label for="codigo-ticket" class="block text-sm font-medium text-slate-700">
+          Código del ticket
+        </label>
+        <div class="flex gap-2">
+          <input
+            #campo
+            id="codigo-ticket"
+            type="text"
+            class="control font-mono text-lg tracking-wide uppercase"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+            placeholder="Escanee el código de barras"
+            aria-describedby="ayuda-codigo"
+            [value]="codigo()"
+            (input)="codigo.set($any($event.target).value)"
+          />
+          <button
+            type="submit"
+            class="btn btn-primario"
+            [disabled]="buscando() || !codigo().trim()"
+          >
+            <app-icono nombre="buscar" [tamano]="18" />
+            <span class="hidden sm:inline">Buscar</span>
+          </button>
+          @if (camaraDisponible) {
+            <button
+              type="button"
+              class="btn btn-contorno"
+              [attr.aria-pressed]="camaraActiva()"
+              (click)="alternarCamara()"
+            >
+              <app-icono nombre="camara" [tamano]="18" />
+              <span class="hidden sm:inline">{{
+                camaraActiva() ? 'Cerrar cámara' : 'Cámara'
+              }}</span>
+            </button>
+          }
+        </div>
+        <p id="ayuda-codigo" class="text-xs text-slate-500">
+          Con el lector, apunte al código de barras: se busca solo. Sin lector, escriba el número y
+          el código de verificación impreso en el ticket (ej. TC-2026-000001-K7QX3M).
+        </p>
+      </form>
+
+      @if (camaraActiva()) {
+        <div class="mt-4 overflow-hidden rounded-md border border-slate-200 bg-black">
+          <video #video class="aspect-video w-full object-cover" muted playsinline></video>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">Centre el código de barras en la imagen.</p>
+      }
+    </section>
+
+    <div aria-live="polite" class="space-y-4">
+      @if (error(); as mensaje) {
+        <div
+          class="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          role="alert"
+        >
+          <app-icono nombre="error" [tamano]="18" class="mt-0.5 shrink-0" />
+          <span>{{ mensaje }}</span>
+        </div>
+      }
+
+      @if (ultimo(); as d) {
+        <div
+          class="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+          role="status"
+        >
+          <app-icono nombre="exito" [tamano]="22" class="mt-0.5 shrink-0" />
+          <div>
+            <p class="font-semibold">
+              Ticket {{ d.numero }} despachado: {{ d.galones | number: '1.0-2' }} gal de
+              {{ d.tipoCombustible }}
+            </p>
+            <p>
+              {{ d.fechaUso | date: "dd/MM/y 'a las' h:mm:ss a" }}
+              @if (d.despachadoPor) {
+                · Operador: {{ d.despachadoPor }}
+              }
+              @if (d.receptorNombre) {
+                · Recibió: {{ d.receptorNombre }}
+              }
+            </p>
+          </div>
+        </div>
+      }
+
+      @if (ticket(); as t) {
+        <section class="tarjeta" aria-labelledby="sec-ticket">
+          <header
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-3"
+          >
+            <h2 id="sec-ticket" class="font-mono text-lg font-semibold text-slate-900">
+              {{ t.numero }}
+            </h2>
+            <span
+              class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              [class.bg-emerald-100]="t.estatus === 'Disponible'"
+              [class.text-emerald-800]="t.estatus === 'Disponible'"
+              [class.bg-amber-100]="t.estatus !== 'Disponible'"
+              [class.text-amber-800]="t.estatus !== 'Disponible'"
+            >
+              {{ t.estatus }}
+            </span>
+          </header>
+
+          <div class="space-y-4 p-5">
+            <p class="text-3xl font-semibold text-slate-900">
+              {{ t.galones | number: '1.0-2' }}
+              <span class="text-lg font-normal text-slate-600"
+                >galones de {{ t.tipoCombustible }}</span
+              >
+            </p>
+            <dl class="grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt class="text-slate-500">Entregado a</dt>
+                <dd class="text-slate-900">{{ t.entregadoA || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-slate-500">Propósito</dt>
+                <dd class="text-slate-900">{{ t.proposito || '—' }}</dd>
+              </div>
+            </dl>
+
+            @switch (t.estatus) {
+              @case ('Utilizado') {
+                <div
+                  class="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                  role="alert"
+                >
+                  <p class="font-semibold">Este ticket ya fue utilizado. No despache.</p>
+                  @if (t.fechaUso) {
+                    <p>
+                      Despachado el {{ t.fechaUso | date: "dd/MM/y 'a las' h:mm a" }}
+                      @if (t.despachadoPor) {
+                        por {{ t.despachadoPor }}
+                      }
+                      @if (t.receptorNombre) {
+                        · recibió {{ t.receptorNombre }}
+                      }
+                    </p>
+                  }
+                </div>
+              }
+              @case ('Reservado') {
+                <p
+                  class="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                >
+                  La solicitud de este ticket aún no ha sido aprobada; no se puede despachar.
+                </p>
+              }
+              @case ('Anulado') {
+                <p class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  Este ticket fue anulado (solicitud rechazada o cancelada); no se puede despachar.
+                </p>
+              }
+              @default {
+                @if (t.requiereCodigoVerificacion) {
+                  <form
+                    class="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3"
+                    (submit)="$event.preventDefault(); verificar()"
+                  >
+                    <label for="verificacion" class="block text-sm font-medium text-amber-900">
+                      Escriba el código de verificación impreso en el ticket
+                    </label>
+                    <div class="flex gap-2">
+                      <input
+                        id="verificacion"
+                        type="text"
+                        class="control font-mono uppercase sm:w-40"
+                        maxlength="6"
+                        autocomplete="off"
+                        spellcheck="false"
+                        [value]="verificacion()"
+                        (input)="verificacion.set($any($event.target).value)"
+                      />
+                      <button
+                        type="submit"
+                        class="btn btn-primario"
+                        [disabled]="!verificacion().trim()"
+                      >
+                        Verificar
+                      </button>
+                    </div>
+                    <p class="text-xs text-amber-900">
+                      Se pide para comprobar que el ticket es auténtico; al escanearlo se lee solo.
+                    </p>
+                  </form>
+                } @else {
+                  <div>
+                    <label for="receptor" class="mb-1 block text-sm font-medium text-slate-700">
+                      Recibido por <span class="font-normal text-slate-500">(opcional)</span>
+                    </label>
+                    <input
+                      id="receptor"
+                      type="text"
+                      class="control"
+                      maxlength="200"
+                      autocomplete="off"
+                      placeholder="Nombre o placa de quien recibe el combustible"
+                      [value]="receptor()"
+                      (input)="receptor.set($any($event.target).value)"
+                      (keydown.enter)="$event.preventDefault(); despachar()"
+                    />
+                  </div>
+                }
+              }
+            }
+
+            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" class="btn btn-contorno" (click)="limpiar()">
+                {{ puedeDespachar() ? 'Cancelar' : 'Escanear otro' }}
+              </button>
+              @if (puedeDespachar()) {
+                <button
+                  #confirmar
+                  type="button"
+                  class="btn btn-primario"
+                  [disabled]="despachando()"
+                  (click)="despachar()"
+                >
+                  <app-icono nombre="combustible" [tamano]="18" />
+                  {{
+                    despachando()
+                      ? 'Despachando…'
+                      : 'Despachar ' + (t.galones | number: '1.0-2') + ' gal'
+                  }}
+                </button>
+              }
+            </div>
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+
+  <!-- Despachos del día -->
+  <section class="tarjeta lg:col-span-2" aria-labelledby="sec-hoy">
+    <header class="border-b border-slate-200 px-5 py-3">
+      <h2 id="sec-hoy" class="font-semibold text-slate-900">Despachos de hoy</h2>
+      <p class="text-xs text-slate-500">
+        {{ despachos().length }} ticket(s) · Gasolina {{ totales().Gasolina | number: '1.0-2' }} gal
+        · Gasoil {{ totales().Gasoil | number: '1.0-2' }} gal
+      </p>
+    </header>
+    @if (despachos().length === 0) {
+      <p class="p-5 text-sm text-slate-500">Aún no se ha despachado ningún ticket hoy.</p>
+    } @else {
+      <ul class="max-h-[32rem] divide-y divide-slate-100 overflow-y-auto">
+        @for (d of despachos(); track d.movimientoId) {
+          <li class="px-5 py-3 text-sm">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="font-mono font-semibold text-slate-900">{{ d.numero }}</span>
+              <span class="text-xs whitespace-nowrap text-slate-500">
+                {{ d.fechaUso | date: 'h:mm a' }}
+              </span>
+            </div>
+            <p class="text-slate-700">
+              {{ d.galones | number: '1.0-2' }} gal de {{ d.tipoCombustible }}
+              @if (d.entregadoA) {
+                · {{ d.entregadoA }}
+              }
+            </p>
+            <p class="text-xs text-slate-500">
+              Operador: {{ d.despachadoPor || '—' }}
+              @if (d.receptorNombre) {
+                · Recibió: {{ d.receptorNombre }}
+              }
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

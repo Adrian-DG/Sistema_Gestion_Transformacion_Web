@@ -3,6 +3,11 @@
   titulo="Combustible"
   descripcion="Asignación de combustible mediante tickets numerados. Ninguna solicitud se elimina; se rechaza o cancela con un motivo."
 >
+  @if (puedeDespachar()) {
+    <a routerLink="despacho" class="btn btn-contorno">
+      <app-icono nombre="combustible" [tamano]="18" /> Despachar tickets
+    </a>
+  }
   @if (puedeGestionar()) {
     <a routerLink="entrada" class="btn btn-contorno">
       <app-icono nombre="combustible" [tamano]="18" /> Registrar entrada
@@ -76,9 +81,13 @@
     "
   >
     <ng-template appCelda="tickets" let-s>
-      <span class="block font-mono text-sm font-semibold whitespace-nowrap text-slate-900">
+      <a
+        [routerLink]="[s.id]"
+        class="block font-mono text-sm font-semibold whitespace-nowrap text-slate-900 hover:text-primario hover:underline"
+        [attr.aria-label]="'Ver detalle de los tickets ' + rango(s)"
+      >
         {{ rango(s) }}
-      </span>
+      </a>
       <span class="block text-xs text-slate-500">
         {{ detalle(s) }} · {{ s.totalGalones | number: '1.0-2' }} gal
       </span>
@@ -146,6 +155,20 @@
 
     <ng-template appCelda="acciones" let-s>
       <div class="flex flex-wrap justify-end gap-1">
+        <a [routerLink]="[s.id]" class="btn btn-texto btn-sm">
+          <app-icono nombre="ver" [tamano]="16" /> Ver detalle
+        </a>
+        @if (s.estatus === 'Aprobada' && disponibles(s) > 0 && puedeGestionar()) {
+          <button
+            type="button"
+            class="btn btn-texto btn-sm"
+            [disabled]="imprimiendo() === s.id"
+            [attr.aria-label]="'Imprimir los tickets disponibles de la solicitud'"
+            (click)="imprimir(s)"
+          >
+            <app-icono nombre="descargar" [tamano]="16" /> Imprimir tickets
+          </button>
+        }
         @if (s.estatus === 'Pendiente' && puedeAprobar()) {
           <button
             type="button"

@@ -61,6 +61,32 @@ export class SolicitudesTicketLista {
   private readonly auth = inject(AuthService);
   protected readonly puedeGestionar = computed(() => this.auth.tiene(Permiso.GestionCombustible));
   protected readonly puedeAprobar = computed(() => this.auth.tiene(Permiso.AprobarTickets));
+  protected readonly puedeDespachar = computed(() => this.auth.tiene(Permiso.DespachoCombustible));
+
+  protected readonly imprimiendo = signal<string | null>(null);
+
+  protected disponibles(s: SolicitudTicketResumen): number {
+    return s.tickets.filter((t) => t.estatus === 'Disponible').length;
+  }
+
+  /** Descarga el PDF con los tickets disponibles (código de barras para el despacho). */
+  protected async imprimir(s: SolicitudTicketResumen): Promise<void> {
+    this.imprimiendo.set(s.id);
+    try {
+      const pdf = await firstValueFrom(this.combustible.imprimirTickets(s.id));
+      const url = URL.createObjectURL(pdf);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `Tickets_${s.tickets[0]?.numero ?? s.id}.pdf`;
+      enlace.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      // El interceptor ya mostró el aviso.
+      if (!esApiError(e)) throw e;
+    } finally {
+      this.imprimiendo.set(null);
+    }
+  }
 
   // Parámetros de la URL (withComponentInputBinding).
   readonly pagina = input(1, { transform: (v: unknown) => Math.max(1, numberAttribute(v, 1)) });

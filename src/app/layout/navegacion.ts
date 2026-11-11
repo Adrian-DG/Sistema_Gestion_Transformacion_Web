@@ -54,6 +54,13 @@ export const MENU: GrupoMenu[] = [
         ],
         descripcion: 'Existencia, compras, despachos y tickets',
       },
+      {
+        titulo: 'Despacho de combustible',
+        ruta: '/combustible/despacho',
+        icono: 'combustible',
+        permisos: [Permiso.DespachoCombustible],
+        descripcion: 'Escanear y canjear tickets de combustible',
+      },
     ],
   },
   {
